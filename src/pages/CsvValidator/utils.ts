@@ -43,13 +43,13 @@ export const validateCsvContent = (data: any[]): ValidationError[] => {
 
       // 特殊檢查：Keywords
       if (header === 'Keywords' && value) {
-        const keywords = value.split(',').map(k => k.trim());
-        if (keywords.some(k => !k)) {
+        const keywords = value.split(',').map((k: string) => k.trim());
+        if (keywords.some((k: string) => !k)) {
           errors.push({
             type: 'data',
             row: rowIndex + 1,
             field: header,
-            message: `第 ${rowIndex + 1} 行: ${header} 包含空值`
+            message: `第 ${rowIndex + 1} 行: Keywords 不能包含空值`
           });
         }
       }

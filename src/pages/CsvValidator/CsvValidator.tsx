@@ -23,7 +23,7 @@ const CsvValidator: React.FC = () => {
   });
 
   const handleCsvUpload = (data: string[][], headers: string[]) => {
-    const errors = validateCsvContent(data, headers);
+    const errors = validateCsvContent(data);
     const filenames = data.map(row => row[headers.indexOf('filename')]).filter(Boolean);
     
     setState(prev => ({

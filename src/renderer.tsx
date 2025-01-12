@@ -27,9 +27,11 @@
  */
 
 import './index.css';
+
+
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { ThemeProvider, createTheme, CssBaseline, Button, Stack } from '@mui/material';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import MainLayout from './components/Layout/MainLayout';
 import Home from './pages/Home';
@@ -38,9 +40,11 @@ import CsvValidation from './pages/CsvValidator';
 
 const theme = createTheme({
   palette: {
-    mode: 'light',
+    mode: 'dark',
   },
 });
+
+
 
 const container = document.getElementById('root');
 const root = createRoot(container!);
