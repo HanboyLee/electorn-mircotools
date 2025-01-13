@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Typography, Paper, Box, Container, Button, TextField, Alert } from '@mui/material';
 import { FileIPC } from '../../constants/ipc';
-import type { ElectronAPI } from '../../types/services';
 
 interface Result {
   success: boolean;
@@ -10,9 +9,10 @@ interface Result {
 
 const Home: React.FC = () => {
   const [testContent, setTestContent] = useState('');
-  const [testFilePath, setTestFilePath] = useState('/tmp/test.txt');
+  const [testFilePath, setTestFilePath] = useState('/Users/douzi/Documents/產品文檔/csv寫入圖片metadata/image_analysis_2024-12-02.csv');
   const [result, setResult] = useState<Result | null>(null);
-
+  
+  console.log(window.electronAPI,FileIPC,'window.electronAPI;')
   const handleTestFileWrite = async () => {
     try {
       const api = window.electronAPI;

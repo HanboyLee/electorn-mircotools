@@ -7,8 +7,8 @@ export const FileIPC = {
 
 // Metadata 操作相關的 IPC 通道
 export const MetadataIPC = {
-  READ: 'metadata:read' as const,
-  WRITE: 'metadata:write' as const,
+  METADATA_READ: 'metadata:read' as const,
+  METADATA_WRITE: 'metadata:write' as const,
 } as const;
 
 // 導出所有 IPC 通道

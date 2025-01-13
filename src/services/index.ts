@@ -27,5 +27,5 @@ export abstract class BaseService {
 
 // 導出所有服務
 export * from './fileService';
-// TODO: 實現後再取消註釋
-// export * from './metadataService';
+export * from './metadataService';
+
