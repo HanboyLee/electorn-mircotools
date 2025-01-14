@@ -34,6 +34,9 @@ const config: ForgeConfig = {
           },
         ],
       },
+      devContentSecurityPolicy: "default-src 'self' 'unsafe-inline' data:; script-src 'self' 'unsafe-eval' 'unsafe-inline' data:",
+      port: 3000,
+      loggerPort: 9000,
     }),
     new FusesPlugin({
       version: FuseVersion.V1,

@@ -142,7 +142,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       <List
         itemLayout="horizontal"
         dataSource={selectedImages}
-        renderItem={file => {
+        renderItem={(file: File) => {
           const status = getFileStatus(file.name);
           return (
             <List.Item

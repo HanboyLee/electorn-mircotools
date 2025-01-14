@@ -5,10 +5,11 @@ export interface CsvValidatorState {
   validationErrors: ValidationError[];
   isValid: boolean;
   fileName: string;
-  selectedImages: File[];
+  imageDirectory: string; // 改為圖片目錄路徑
+  directoryImages: string[]; // 目錄中的圖片文件列表
   processing: boolean;
   progress: number;
-  csvData: any[];
+  csvData: string[][]; // Changed from any[] to string[][]
   headers: string[];
   uploadProgress: number;
 }
@@ -17,7 +18,7 @@ export interface CsvValidatorState {
  * 驗證錯誤的接口
  */
 export interface ValidationError {
-  type: 'header' | 'data' | 'file';
+  type: 'header' | 'data' | 'file' | 'directory'; // 添加 directory 類型
   row?: number;
   field?: string;
   message: string;
@@ -47,30 +48,24 @@ export interface CsvUploadProps {
 }
 
 /**
- * 圖片上傳組件的屬性
- */
-export interface ImageUploadProps {
-  onImageUpload: (file: File, isRemove?: boolean) => void;
-  selectedImages: File[];
-  csvFilenames?: string[];
-  onRemove?: (file: File) => void;
-  onPreview?: (file: File) => void;
-  maxCount?: number;
-  uploadProgress?: number;
-}
-
-/**
- * 圖片文件狀態
- */
-export interface ImageFileStatus {
-  status: 'success' | 'error' | 'warning' | 'uploading';
-  message: string;
-  progress?: number;
-}
-
-/**
  * 驗證錯誤顯示組件的屬性
  */
 export interface ValidationErrorsDisplayProps {
   errors: ValidationError[];
+}
+
+export interface ImageFileStatus {
+  status: 'success' | 'error' | 'warning';
+  message: string;
+  progress?: number;
+}
+
+export interface ImageUploadProps {
+  onImageUpload: (file: File, remove?: boolean) => void;
+  selectedImages: File[];
+  csvFilenames: string[];
+  onRemove?: (file: File) => void;
+  onPreview?: (file: File) => void;
+  maxCount?: number;
+  uploadProgress?: number;
 }

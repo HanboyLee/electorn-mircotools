@@ -21,4 +21,13 @@ export const mainConfig: Configuration = {
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  externals: {
+    'electron-reloader': 'commonjs2 electron-reloader',
+  },
+  watch: process.env.NODE_ENV === 'development',
+  watchOptions: {
+    aggregateTimeout: 300,
+    poll: 1000,
+    ignored: /node_modules/,
+  },
 };
