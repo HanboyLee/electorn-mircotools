@@ -59,8 +59,8 @@ export class MetadataService extends BaseService {
         const metadata = {
           Title: row.Title,
           Description: row.Description,
-          //   Keywords: row.Keywords.split(',').map(k => k.trim()),
-          Subject: row.Keywords.split(',').map(k => k.trim()), // 某些查看器使用 Subject
+          Keywords: row.Keywords.split(',').map(k => k.trim()),
+          //   Subject: row.Keywords.split(',').map(k => k.trim()), // 某些查看器使用 Subject
           'XMP:Title': row.Title,
           'XMP:Description': row.Description,
           //   'XMP:Subject': row.Keywords.split(',').map(k => k.trim()),

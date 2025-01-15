@@ -6,6 +6,7 @@ import { ValidationErrorsDisplay } from './components/ValidationErrorsDisplay';
 import { validateCsvContent } from './utils';
 import { CsvValidatorState } from './types';
 import { FileIPC, MetadataIPC } from '../../constants/ipc';
+import { WriteMetadataResult } from '@/types/metadata';
 
 const { Title } = Typography;
 
@@ -98,7 +99,7 @@ const CsvValidator: React.FC = () => {
     setState(prev => ({ ...prev, processing: true }));
 
     try {
-      const results = await window.electronAPI[MetadataIPC.METADATA_WRITE](
+      const results: WriteMetadataResult = await window.electronAPI[MetadataIPC.METADATA_WRITE](
         String(state.imageDirectory),
         state.csvData.map(row => ({
           Filename: row['Filename'],
@@ -107,18 +108,11 @@ const CsvValidator: React.FC = () => {
           Keywords: row['Keywords'],
         }))
       );
-      console.log(state, results, 111, 'results');
-
-      interface WriteMetadataResult {
-        Filename: string;
-        success: boolean;
-        error?: string;
-      }
 
       const errors =
         results
           ?.filter(r => !r.success)
-          ?.map((r: WriteMetadataResult) => ({
+          ?.map(r => ({
             type: 'file' as const,
             message: `處理 ${r.Filename} 失敗: ${r.error}`,
           })) || [];

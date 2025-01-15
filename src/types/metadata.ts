@@ -11,8 +11,8 @@ export interface ImageMetadata {
  * 寫入元數據的結果接口
  */
 export interface WriteMetadataResult {
-  filter(arg0: (r: any) => boolean): unknown;
   filename: string;
+  Filename?: string;
   success: boolean;
   error?: string;
 }
