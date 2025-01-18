@@ -28,25 +28,21 @@
 
 import './index.css';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider } from 'antd';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import MainLayout from './components/Layout/MainLayout';
 import Home from './pages/Home';
 import Settings from './pages/Settings';
 import CsvValidation from './pages/CsvValidator';
+import { getStoredTheme, themes, ThemeType } from './themes';
 
-const container = document.getElementById('root');
-const root = createRoot(container!);
+const App: React.FC = () => {
+  const [theme, setTheme] = useState<ThemeType>(getStoredTheme());
 
-root.render(
-  <React.StrictMode>
-    <ConfigProvider
-      theme={{
-        algorithm: theme.darkAlgorithm,
-      }}
-    >
+  return (
+    <ConfigProvider theme={themes[theme]}>
       <Router>
         <MainLayout>
           <Routes>
@@ -57,6 +53,15 @@ root.render(
         </MainLayout>
       </Router>
     </ConfigProvider>
+  );
+};
+
+const container = document.getElementById('root');
+const root = createRoot(container!);
+
+root.render(
+  <React.StrictMode>
+    <App />
   </React.StrictMode>
 );
 

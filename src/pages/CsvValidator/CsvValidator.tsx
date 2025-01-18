@@ -174,54 +174,52 @@ const CsvValidator: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Card>
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <Title level={4}>CSV 元數據寫入工具</Title>
+    <Card>
+      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Title level={4}>CSV 元數據寫入工具</Title>
 
-          <div>
-            <Button type="primary" onClick={handleDirectorySelect} disabled={state.processing}>
-              選擇圖片目錄
-            </Button>
-            {state.imageDirectory && (
-              <div style={{ marginTop: '8px' }}>
-                已選擇目錄: {state.imageDirectory}
-                <br />
-                找到 {state.directoryImages.length} 個圖片文件
-              </div>
-            )}
-          </div>
-
-          <CsvRequirements />
-
-          <CsvUpload
-            onUpload={handleCsvUpload}
-            onError={handleError}
-            onProgress={handleProgress}
-            progress={state.uploadProgress}
-          />
-
-          {state.validationErrors.length > 0 && (
-            <ValidationErrorsDisplay errors={state.validationErrors} />
+        <div>
+          <Button type="primary" onClick={handleDirectorySelect} disabled={state.processing}>
+            選擇圖片目錄
+          </Button>
+          {state.imageDirectory && (
+            <div style={{ marginTop: '8px' }}>
+              已選擇目錄: {state.imageDirectory}
+              <br />
+              找到 {state.directoryImages.length} 個圖片文件
+            </div>
           )}
+        </div>
 
-          <Space>
-            <Button
-              type="primary"
-              onClick={handleStartProcessing}
-              disabled={!state.isValid || !state.imageDirectory || state.processing}
-            >
-              開始處理
-            </Button>
-            <Button onClick={handleReset} disabled={state.processing}>
-              重置
-            </Button>
-          </Space>
+        <CsvRequirements />
 
-          {state.processing && <Progress percent={state.progress} status="active" />}
+        <CsvUpload
+          onUpload={handleCsvUpload}
+          onError={handleError}
+          onProgress={handleProgress}
+          progress={state.uploadProgress}
+        />
+
+        {state.validationErrors.length > 0 && (
+          <ValidationErrorsDisplay errors={state.validationErrors} />
+        )}
+
+        <Space>
+          <Button
+            type="primary"
+            onClick={handleStartProcessing}
+            disabled={!state.isValid || !state.imageDirectory || state.processing}
+          >
+            開始處理
+          </Button>
+          <Button onClick={handleReset} disabled={state.processing}>
+            重置
+          </Button>
         </Space>
-      </Card>
-    </div>
+
+        {state.processing && <Progress percent={state.progress} status="active" />}
+      </Space>
+    </Card>
   );
 };
 

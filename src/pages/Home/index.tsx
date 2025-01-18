@@ -63,73 +63,69 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card>
-        <Title level={2}>
-          <Space>
-            <FileTextOutlined />
-            API 測試面板
-          </Space>
-        </Title>
+    <Card>
+      <Title level={2}>
+        <Space>
+          <FileTextOutlined />
+          API 測試面板
+        </Space>
+      </Title>
 
-        <Space direction="vertical" size="large" style={{ width: '100%', marginTop: 24 }}>
-          <Input
-            placeholder="文件路徑"
-            value={testFilePath}
-            onChange={e => setTestFilePath(e.target.value)}
-            prefix={<FileTextOutlined />}
-          />
+      <Space direction="vertical" size="large" style={{ width: '100%', marginTop: 24 }}>
+        <Input
+          placeholder="文件路徑"
+          value={testFilePath}
+          onChange={e => setTestFilePath(e.target.value)}
+          prefix={<FileTextOutlined />}
+        />
 
-          <TextArea
-            placeholder="文件內容"
-            rows={4}
-            value={testContent}
-            onChange={e => setTestContent(e.target.value)}
-          />
+        <TextArea
+          placeholder="文件內容"
+          rows={4}
+          value={testContent}
+          onChange={e => setTestContent(e.target.value)}
+        />
 
-          <Space>
-            <Button type="primary" icon={<SaveOutlined />} onClick={handleTestFileWrite}>
-              測試寫入文件
-            </Button>
-            <Button type="default" icon={<ReadOutlined />} onClick={handleTestFileRead}>
-              測試讀取文件
-            </Button>
-            <Button type="default" icon={<InfoCircleOutlined />} onClick={handleGetSystemInfo}>
-              獲取系統信息
-            </Button>
-          </Space>
-
-          {result && (
-            <Alert message={result.message} type={result.success ? 'success' : 'error'} showIcon />
-          )}
-
-          {systemInfo && (
-            <Card size="small" title="系統信息">
-              <Space direction="vertical">
-                <Text>平台：{systemInfo.platform}</Text>
-                <Text>版本：{systemInfo.version}</Text>
-                <Text>Electron版本：{systemInfo.electronVersion}</Text>
-              </Space>
-            </Card>
-          )}
+        <Space>
+          <Button type="primary" icon={<SaveOutlined />} onClick={handleTestFileWrite}>
+            測試寫入文件
+          </Button>
+          <Button type="default" icon={<ReadOutlined />} onClick={handleTestFileRead}>
+            測試讀取文件
+          </Button>
+          <Button type="default" icon={<InfoCircleOutlined />} onClick={handleGetSystemInfo}>
+            獲取系統信息
+          </Button>
         </Space>
 
-        <Divider />
+        {result && (
+          <Alert message={result.message} type={result.success ? 'success' : 'error'} showIcon />
+        )}
 
-        <Title level={3}>功能說明</Title>
-        <Paragraph>
-          這個頁面提供了一個測試面板，用於測試基本的文件操作和系統信息獲取功能：
-        </Paragraph>
-        <ul>
-          <li>
-            <Text>文件讀寫：測試文件的讀取和寫入功能</Text>
-          </li>
-          <li>
-            <Text>系統信息：獲取當前系統的基本信息</Text>
-          </li>
-        </ul>
-      </Card>
-    </div>
+        {systemInfo && (
+          <Card size="small" title="系統信息">
+            <Space direction="vertical">
+              <Text>平台：{systemInfo.platform}</Text>
+              <Text>版本：{systemInfo.version}</Text>
+              <Text>Electron版本：{systemInfo.electronVersion}</Text>
+            </Space>
+          </Card>
+        )}
+      </Space>
+
+      <Divider />
+
+      <Title level={3}>功能說明</Title>
+      <Paragraph>這個頁面提供了一個測試面板，用於測試基本的文件操作和系統信息獲取功能：</Paragraph>
+      <ul>
+        <li>
+          <Text>文件讀寫：測試文件的讀取和寫入功能</Text>
+        </li>
+        <li>
+          <Text>系統信息：獲取當前系統的基本信息</Text>
+        </li>
+      </ul>
+    </Card>
   );
 };
 
