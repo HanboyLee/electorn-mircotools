@@ -3,9 +3,10 @@
   "productName": "metadata-app",
   "version": "1.0.0",
   "description": "My Electron application description",
-  "main": ".webpack/main",
+  "main": ".vite/build/index.js",
   "scripts": {
     "start": "cross-env NODE_ENV=development ELECTRON_ENABLE_LOGGING=1 ELECTRON_ENABLE_STACK_DUMPING=1 electron-forge start",
+    "dev": "npm start && electronmon . ",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
@@ -13,10 +14,22 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\""
   },
+  "electronmon": {
+    "patterns": [
+      "src/main/index.ts",
+      "src/preload.ts",
+      "src/services/*"
+    ],
+    "ignored": [
+      "node_modules/**/*",
+      ".vite/**/*",
+      "dist/**/*"
+    ]
+  },
+  "config": {
+    "forge": "./forge.config.js"
+  },
   "devDependencies": {
-    "@babel/core": "^7.26.0",
-    "@babel/preset-react": "^7.26.3",
-    "@babel/preset-typescript": "^7.26.0",
     "@electron-forge/cli": "^7.6.0",
     "@electron-forge/maker-deb": "^7.6.0",
     "@electron-forge/maker-rpm": "^7.6.0",
@@ -24,30 +37,27 @@
     "@electron-forge/maker-zip": "^7.6.0",
     "@electron-forge/plugin-auto-unpack-natives": "^7.6.0",
     "@electron-forge/plugin-fuses": "^7.6.0",
-    "@electron-forge/plugin-webpack": "^7.6.0",
+    "@electron-forge/plugin-vite": "^7.2.0",
     "@electron/fuses": "^1.8.0",
+    "@types/node": "^20.0.0",
     "@types/prettier": "^3.0.0",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "@typescript-eslint/parser": "^5.0.0",
-    "@vercel/webpack-asset-relocator-loader": "1.7.3",
-    "babel-loader": "^9.2.1",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
-    "css-loader": "^6.0.0",
     "electron": "33.3.1",
     "electron-reloader": "^1.2.3",
+    "electronmon": "^2.0.3",
     "eslint": "^8.0.1",
     "eslint-config-prettier": "^10.0.1",
     "eslint-import-resolver-typescript": "^3.7.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-prettier": "^5.2.1",
-    "fork-ts-checker-webpack-plugin": "^7.2.13",
-    "node-loader": "^2.0.0",
-    "nodemon": "^2.0.22",
     "prettier": "^3.4.2",
-    "style-loader": "^3.0.0",
-    "ts-loader": "^9.2.2",
-    "ts-node": "^10.0.0",
-    "typescript": "~4.5.4"
+    "ts-node": "^10.9.2",
+    "typescript": "~4.5.4",
+    "vite": "^5.0.0"
   },
   "keywords": [],
   "author": {
@@ -56,20 +66,19 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
-    "@mui/icons-material": "^6.3.1",
-    "@mui/material": "^6.3.1",
+    "@ant-design/pro-components": "^2.8.3",
     "@types/papaparse": "^5.3.15",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
-    "antd": "^5.23.0",
+    "@types/styled-components": "^5.1.34",
+    "antd": "^5.23.1",
     "electron-squirrel-startup": "^1.0.1",
     "exifr": "^7.1.3",
     "exiftool-vendored": "^29.0.0",
     "papaparse": "^5.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^7.1.1"
+    "react-router-dom": "^7.1.1",
+    "styled-components": "^6.1.14"
   }
 }

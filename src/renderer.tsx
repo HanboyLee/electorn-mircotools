@@ -28,31 +28,25 @@
 
 import './index.css';
 
-
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { ThemeProvider, createTheme, CssBaseline, Button, Stack } from '@mui/material';
+import { ConfigProvider, theme } from 'antd';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import MainLayout from './components/Layout/MainLayout';
 import Home from './pages/Home';
 import Settings from './pages/Settings';
 import CsvValidation from './pages/CsvValidator';
 
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-  },
-});
-
-
-
 const container = document.getElementById('root');
 const root = createRoot(container!);
 
 root.render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <ConfigProvider
+      theme={{
+        algorithm: theme.darkAlgorithm,
+      }}
+    >
       <Router>
         <MainLayout>
           <Routes>
@@ -62,7 +56,7 @@ root.render(
           </Routes>
         </MainLayout>
       </Router>
-    </ThemeProvider>
+    </ConfigProvider>
   </React.StrictMode>
 );
 

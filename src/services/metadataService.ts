@@ -1,4 +1,4 @@
-import { BaseService } from './index';
+import { BaseService } from './baseService';
 import { MetadataIPC } from '../constants/ipc';
 import { WriteMetadataResult, CsvMetadataRow } from '../types/metadata';
 import { promises as fs } from 'fs';
@@ -41,7 +41,7 @@ export class MetadataService extends BaseService {
         // 構建完整的圖片路徑
         const imagePath = path.join(imageDir, row.Filename);
 
-        console.log('處理圖片33333555533：', imagePath);
+        console.log('處理圖片：', imagePath);
         // 檢查文件是否存在
         try {
           await fs.access(imagePath);

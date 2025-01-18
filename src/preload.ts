@@ -1,7 +1,7 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, ipcMain } from 'electron';
 import type { ElectronAPI, APIChannel } from './types/services';
 import { IPC } from './constants/ipc';
 
@@ -22,4 +22,14 @@ const API_CHANNELS = Object.values(IPC);
 const api = createAPIProxy<ElectronAPI>(API_CHANNELS);
 
 // 暴露 API 給渲染進程
-contextBridge.exposeInMainWorld('electronAPI', api);
+contextBridge.exposeInMainWorld('electronAPI', {
+  ...api,
+  // 添加系統信息 API
+  getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+  getSystemInfoSync: () => ipcRenderer.sendSync('get-system-info'),
+});
+
+ipcMain.handle('send-message', async (event, message) => {
+  console.log('Received message from renderer:', message);
+  return `Server received: ${message}`;
+});

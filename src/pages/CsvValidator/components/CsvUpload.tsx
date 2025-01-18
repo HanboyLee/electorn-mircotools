@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { Upload, Button, Alert, Progress, Modal, Table } from 'antd';
+import { Upload, Button, Alert, Progress, Modal, Table, Space } from 'antd';
 import { UploadOutlined, FileTextOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { CsvUploadProps } from '../types';
 import { parseCsv } from '../utils';
-
-const { Dragger } = Upload;
 
 // 與 utils.ts 保持一致的必需欄位
 const REQUIRED_HEADERS = ['Filename', 'Title', 'Description', 'Keywords'];
@@ -106,31 +104,25 @@ export const CsvUpload: React.FC<CsvUploadProps> = ({
 
   return (
     <div>
-      <Dragger
-        accept=".csv"
-        beforeUpload={handleBeforeUpload}
-        showUploadList={false}
-        style={{ marginBottom: '16px' }}
-      >
-        <p className="ant-upload-drag-icon">
-          <FileTextOutlined />
-        </p>
-        <p className="ant-upload-text">點擊或拖拽 CSV 文件到此區域上傳</p>
-        <p className="ant-upload-hint">
-          請確保 CSV 文件包含必需的欄位：{REQUIRED_HEADERS.join('、')}
-        </p>
-      </Dragger>
-
-      {template && (
-        <Button
-          type="link"
-          onClick={handleDownloadTemplate}
-          style={{ marginBottom: '16px' }}
+      <Space>
+        <Upload
+          accept=".csv"
+          beforeUpload={handleBeforeUpload}
+          showUploadList={false}
         >
-          下載 CSV 模板
-        </Button>
-      )}
-      
+          <Button icon={<UploadOutlined />}>選擇 CSV 文件</Button>
+        </Upload>
+        
+        {template && (
+          <Button
+            type="link"
+            onClick={handleDownloadTemplate}
+          >
+            下載 CSV 模板
+          </Button>
+        )}
+      </Space>
+
       {selectedFile && (
         <div style={{ marginTop: '16px' }}>
           <Alert

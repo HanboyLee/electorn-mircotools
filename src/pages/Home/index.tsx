@@ -1,18 +1,35 @@
 import React, { useState } from 'react';
-import { Typography, Paper, Box, Container, Button, TextField, Alert } from '@mui/material';
+import { Typography, Card, Space, Input, Button, Alert, Divider } from 'antd';
+import {
+  FileTextOutlined,
+  ReadOutlined,
+  SaveOutlined,
+  InfoCircleOutlined,
+} from '@ant-design/icons';
 import { FileIPC } from '../../constants/ipc';
+
+const { Title, Paragraph, Text } = Typography;
+const { TextArea } = Input;
 
 interface Result {
   success: boolean;
   message: string;
 }
 
+interface SystemInfo {
+  platform: string;
+  version: string;
+  electronVersion: string;
+}
+
 const Home: React.FC = () => {
   const [testContent, setTestContent] = useState('');
-  const [testFilePath, setTestFilePath] = useState('/Users/douzi/Documents/產品文檔/csv寫入圖片metadata/image_analysis_2024-12-02.csv');
+  const [testFilePath, setTestFilePath] = useState(
+    '/Users/douzi/Documents/產品文檔/csv寫入圖片metadata/image_analysis_2024-12-02.csv'
+  );
   const [result, setResult] = useState<Result | null>(null);
-  
-  console.log(window.electronAPI,FileIPC,'window.electronAPI;')
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+
   const handleTestFileWrite = async () => {
     try {
       const api = window.electronAPI;
@@ -34,80 +51,85 @@ const Home: React.FC = () => {
     }
   };
 
+  const handleGetSystemInfo = async () => {
+    try {
+      const api = window.electronAPI;
+      const info = (await api.getSystemInfo()) as SystemInfo;
+      setSystemInfo(info);
+      setResult({ success: true, message: '系統信息獲取成功！' });
+    } catch (error) {
+      setResult({ success: false, message: `系統信息獲取失敗：${error.message}` });
+    }
+  };
+
   return (
-    <Container maxWidth={false}>
-      <Box sx={{ p: 3, width: '100%' }}>
-        <Paper sx={{ p: 4, maxWidth: '100%' }}>
-          <Typography variant="h4" gutterBottom>
+    <div style={{ padding: 24 }}>
+      <Card>
+        <Title level={2}>
+          <Space>
+            <FileTextOutlined />
             API 測試面板
-          </Typography>
+          </Space>
+        </Title>
 
-          <Box sx={{ mt: 3 }}>
-            <TextField
-              fullWidth
-              label="文件路徑"
-              value={testFilePath}
-              onChange={(e) => setTestFilePath(e.target.value)}
-              margin="normal"
-            />
-            <TextField
-              fullWidth
-              label="文件內容"
-              multiline
-              rows={4}
-              value={testContent}
-              onChange={(e) => setTestContent(e.target.value)}
-              margin="normal"
-            />
+        <Space direction="vertical" size="large" style={{ width: '100%', marginTop: 24 }}>
+          <Input
+            placeholder="文件路徑"
+            value={testFilePath}
+            onChange={e => setTestFilePath(e.target.value)}
+            prefix={<FileTextOutlined />}
+          />
 
-            <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleTestFileWrite}
-              >
-                測試寫入文件
-              </Button>
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={handleTestFileRead}
-              >
-                測試讀取文件
-              </Button>
-            </Box>
+          <TextArea
+            placeholder="文件內容"
+            rows={4}
+            value={testContent}
+            onChange={e => setTestContent(e.target.value)}
+          />
 
-            {result && (
-              <Alert 
-                severity={result.success ? "success" : "error"}
-                sx={{ mt: 2 }}
-              >
-                {result.message}
-              </Alert>
-            )}
-          </Box>
+          <Space>
+            <Button type="primary" icon={<SaveOutlined />} onClick={handleTestFileWrite}>
+              測試寫入文件
+            </Button>
+            <Button type="default" icon={<ReadOutlined />} onClick={handleTestFileRead}>
+              測試讀取文件
+            </Button>
+            <Button type="default" icon={<InfoCircleOutlined />} onClick={handleGetSystemInfo}>
+              獲取系統信息
+            </Button>
+          </Space>
 
-          <Box sx={{ mt: 4 }}>
-            <Typography variant="h5" gutterBottom>
-              功能說明
-            </Typography>
-            <Typography variant="body1" gutterBottom>
-              這是一個用於管理圖片 metadata 的桌面應用程序。
-            </Typography>
-            <Typography variant="body1" sx={{ mt: 2 }}>
-              請使用左側菜單選擇所需功能：
-            </Typography>
-            <ul>
-              <li>
-                <Typography variant="body1">
-                  CSV 驗證：檢查 CSV 文件格式是否符合要求
-                </Typography>
-              </li>
-            </ul>
-          </Box>
-        </Paper>
-      </Box>
-    </Container>
+          {result && (
+            <Alert message={result.message} type={result.success ? 'success' : 'error'} showIcon />
+          )}
+
+          {systemInfo && (
+            <Card size="small" title="系統信息">
+              <Space direction="vertical">
+                <Text>平台：{systemInfo.platform}</Text>
+                <Text>版本：{systemInfo.version}</Text>
+                <Text>Electron版本：{systemInfo.electronVersion}</Text>
+              </Space>
+            </Card>
+          )}
+        </Space>
+
+        <Divider />
+
+        <Title level={3}>功能說明</Title>
+        <Paragraph>
+          這個頁面提供了一個測試面板，用於測試基本的文件操作和系統信息獲取功能：
+        </Paragraph>
+        <ul>
+          <li>
+            <Text>文件讀寫：測試文件的讀取和寫入功能</Text>
+          </li>
+          <li>
+            <Text>系統信息：獲取當前系統的基本信息</Text>
+          </li>
+        </ul>
+      </Card>
+    </div>
   );
 };
 

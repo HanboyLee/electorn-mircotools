@@ -1,4 +1,4 @@
-import { BaseService } from './index';
+import { BaseService } from './baseService';
 import { FileIPC } from '../constants/ipc';
 import { dialog } from 'electron';
 import { promises as fs } from 'fs';
@@ -11,29 +11,29 @@ export class FileService extends BaseService {
     return [
       {
         channel: FileIPC.READ,
-        handler: this.readFile.bind(this)
+        handler: this.readFile.bind(this),
       },
       {
         channel: FileIPC.WRITE,
-        handler: this.writeFile.bind(this)
+        handler: this.writeFile.bind(this),
       },
       {
         channel: FileIPC.EXISTS,
-        handler: this.exists.bind(this)
+        handler: this.exists.bind(this),
       },
       {
         channel: FileIPC.SELECT_DIRECTORY,
-        handler: this.selectDirectory.bind(this)
+        handler: this.selectDirectory.bind(this),
       },
       {
         channel: FileIPC.VALIDATE_IMAGE_DIRECTORY,
-        handler: this.validateImageDirectory.bind(this)
-      }
+        handler: this.validateImageDirectory.bind(this),
+      },
     ];
   }
 
   private async readFile(filePath: string): Promise<string> {
-    console.log('Reading file:', filePath);
+    console.log('Reading file113:', filePath);
     try {
       return await fs.readFile(filePath, 'utf-8');
     } catch (error) {
@@ -65,7 +65,7 @@ export class FileService extends BaseService {
    */
   private async selectDirectory(): Promise<string | undefined> {
     const result = await dialog.showOpenDialog({
-      properties: ['openDirectory']
+      properties: ['openDirectory'],
     });
 
     if (result.canceled) {
@@ -84,7 +84,7 @@ export class FileService extends BaseService {
     try {
       const files = await fs.readdir(directoryPath);
       const supportedExtensions = new Set(['.jpg', '.jpeg', '.png']);
-      
+
       const imageFiles = files.filter(file => {
         const ext = path.extname(file).toLowerCase();
         return supportedExtensions.has(ext);

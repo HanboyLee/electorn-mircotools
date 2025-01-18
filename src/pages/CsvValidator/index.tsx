@@ -1,15 +1,21 @@
 import React from 'react';
-import { Container, Box } from '@mui/material';
 import CsvValidator from './CsvValidator';
+import styled from 'styled-components';
 
 const CsvValidation: React.FC = () => {
   return (
-    <Container maxWidth={false}>
-      <Box sx={{ p: 3, width: '100%' }}>
-        <CsvValidator />
-      </Box>
+    <Container>
+      <CsvValidator />
     </Container>
   );
 };
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+`;
 
 export default CsvValidation;

@@ -1,45 +1,61 @@
 import React from 'react';
-import { Typography, Alert } from 'antd';
+import { Typography, Card } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
 
 export const CsvRequirements: React.FC = () => {
   return (
-    <div>
-      <Alert
-        icon={<InfoCircleOutlined />}
-        message="CSV 檔案格式說明"
-        type="info"
-        showIcon
-        style={{ marginBottom: '16px' }}
-      />
+    <Card
+      size="small"
+      title={
+        <span>
+          <InfoCircleOutlined style={{ marginRight: 8 }} />
+          CSV 格式要求
+        </span>
+      }
+      style={{
+        marginBottom: '16px',
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+        borderRadius: '8px',
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div>
+          <Text type="secondary">必需的欄位順序：</Text>
+          <div
+            style={{
+              background: '#fafafa',
+              padding: '8px 12px',
+              marginTop: '4px',
+              fontFamily: 'monospace',
+              borderRadius: '6px',
+              fontSize: '14px',
+              color: '#1677ff',
+            }}
+          >
+            FileName,Title,Description,Keywords
+          </div>
+        </div>
 
-      <div style={{ marginBottom: '16px' }}>
-        <Text strong>Headers (in exact order):</Text>
-        <Paragraph style={{ 
-          background: '#f5f5f5', 
-          padding: '8px', 
-          marginTop: '8px',
-          fontFamily: 'monospace',
-          borderRadius: '4px'
-        }}>
-          FileName,Title,Description,Keywords
-        </Paragraph>
+        <div>
+          <Text type="secondary">注意事項：</Text>
+          <ul
+            style={{
+              marginTop: '4px',
+              paddingLeft: '20px',
+              color: '#666',
+              fontSize: '14px',
+              lineHeight: '1.8',
+            }}
+          >
+            <li>CSV 文件必須使用逗號 (,) 作為分隔符</li>
+            <li>欄位名稱必須與上述完全一致</li>
+            <li>FileName 必須與圖片文件名完全匹配</li>
+            <li>Keywords 欄位中的關鍵詞請用逗號分隔</li>
+          </ul>
+        </div>
       </div>
-
-      <div>
-        <Text strong>Requirements:</Text>
-        <ul style={{ 
-          marginTop: '8px',
-          paddingLeft: '20px'
-        }}>
-          <li>CSV must use comma (,) as delimiter</li>
-          <li>Headers must be exactly as shown above</li>
-          <li>FileName must match your image file name</li>
-          <li>Keywords should be comma-separated</li>
-        </ul>
-      </div>
-    </div>
+    </Card>
   );
 };
