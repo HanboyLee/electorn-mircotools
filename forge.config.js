@@ -11,11 +11,20 @@ module.exports = {
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
-      config: {},
+      config: {
+        name: 'metadata-app',
+        authors: 'Your Name',
+        description: 'Metadata Desktop Application',
+        setupIcon: path.join(__dirname, 'assets', 'icon.ico'), // 安裝程序圖標
+        iconUrl: path.join(__dirname, 'assets', 'icon.ico'), // 應用程序圖標
+        loadingGif: path.join(__dirname, 'assets', 'loading.gif'), // 安裝時的加載動畫
+        setupExe: 'MetadataDesktop-Setup.exe', // 安裝程序文件名
+        noMsi: true, // 不創建 MSI 安裝包
+      },
     },
     {
       name: '@electron-forge/maker-zip',
-      platforms: ['darwin'],
+      platforms: ['darwin', 'win32'],
     },
     {
       name: '@electron-forge/maker-deb',

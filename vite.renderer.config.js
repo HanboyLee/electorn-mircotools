@@ -12,6 +12,14 @@ module.exports = {
   build: {
     outDir: '.vite/renderer',
     emptyOutDir: true,
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'antd'],
+        },
+      },
+    },
   },
   server: {
     port: 3000,
