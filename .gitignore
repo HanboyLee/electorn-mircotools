@@ -56,4 +56,4 @@ Thumbs.db
 
 # webpack
 .webpack/
-.vite/*
+.vite/
