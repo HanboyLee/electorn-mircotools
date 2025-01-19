@@ -41,19 +41,16 @@ node_modules/
 .env.test
 
 # Production build
-dist/
 out/
 
 # IDE
-.idea/
 .vscode/
 *.swp
 *.swo
 
 # OS
-.DS_Store
 Thumbs.db
 
 # webpack
 .webpack/
-.vite/
+.vite/*

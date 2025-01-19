@@ -1,11 +1,31 @@
-const { FusesPlugin } = require('@electron-forge/plugin-fuses');
-const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 const { VitePlugin } = require('@electron-forge/plugin-vite');
 const path = require('path');
 
 module.exports = {
   packagerConfig: {
     asar: true,
+    ignore: [
+      // /^\/src/,
+      // /^\/out/,
+      // /^\/\.env/,
+      // /^\/\.[^/]+/,
+      // /^\/vite\.config\.(js|ts)/,
+      // /^\/forge\.config\.js/,
+      // /^\/package(-lock)?\.json/,
+      // /^\/tsconfig\.json/,
+      (filePath) => {
+        // 不忽略 electron-squirrel-startup
+        if (filePath.includes('node_modules/electron-squirrel-startup')) {
+          return false;
+        }
+        // 不忽略 .vite/build 目录及其内容
+        if (filePath.includes('.vite/build')) {
+          return false;
+        }
+        // 默认不忽略其他文件
+        return filePath.includes('node_modules') && !filePath.includes('electron-squirrel-startup');
+      },
+    ],
   },
   rebuildConfig: {},
   makers: [
@@ -13,18 +33,19 @@ module.exports = {
       name: '@electron-forge/maker-squirrel',
       config: {
         name: 'metadata-app',
-        authors: 'Your Name',
+        authors: 'hanboy',
         description: 'Metadata Desktop Application',
-        setupIcon: path.join(__dirname, 'assets', 'icon.ico'), // 安裝程序圖標
-        iconUrl: path.join(__dirname, 'assets', 'icon.ico'), // 應用程序圖標
-        loadingGif: path.join(__dirname, 'assets', 'loading.gif'), // 安裝時的加載動畫
-        setupExe: 'MetadataDesktop-Setup.exe', // 安裝程序文件名
-        noMsi: true, // 不創建 MSI 安裝包
+        setupIcon: './src/assets/icon.ico',
+        loadingGif: './src/assets/installing.gif',
+        noMsi: true,
+        remoteReleases: '',
+        setupExe: 'metadata-app-setup.exe',
+        skipUpdateIcon: true
       },
     },
     {
       name: '@electron-forge/maker-zip',
-      platforms: ['darwin', 'win32'],
+      platforms: ['darwin'],
     },
     {
       name: '@electron-forge/maker-deb',
@@ -41,37 +62,25 @@ module.exports = {
       config: {},
     },
     new VitePlugin({
-      // 开发服务器选项
-      devServer: {
-        hmr: true,
-        watch: true,
-      },
-      // 构建选项
       build: [
         {
-          entry: path.join(__dirname, 'src', 'index.ts'),
-          config: 'vite.main.config.js',
+          entry: 'src/main/index.ts',
+          config: 'vite.main.config.ts',
+          outDir: '.vite/build'
         },
         {
-          entry: path.join(__dirname, 'src', 'preload.ts'),
-          config: 'vite.preload.config.js',
+          entry: 'src/preload.ts',
+          config: 'vite.preload.config.ts',
+          outDir: '.vite/build'
         },
       ],
       renderer: [
         {
           name: 'main_window',
-          config: 'vite.renderer.config.js',
+          config: 'vite.config.ts',
+          entry: 'index.html',
         },
       ],
-    }),
-    new FusesPlugin({
-      version: FuseVersion.V1,
-      [FuseV1Options.RunAsNode]: false,
-      [FuseV1Options.EnableCookieEncryption]: true,
-      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
-      [FuseV1Options.EnableNodeCliInspectArguments]: false,
-      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-      [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
 };

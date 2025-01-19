@@ -30,6 +30,7 @@ const CsvValidator: React.FC = () => {
       if (!directory) return;
 
       const images = await window.electronAPI[FileIPC.VALIDATE_IMAGE_DIRECTORY](directory);
+      console.log(images,'images')
 
       setState(prev => ({
         ...prev,
@@ -108,6 +109,7 @@ const CsvValidator: React.FC = () => {
           Keywords: row['Keywords'],
         }))
       );
+      console.log(results,'results')
 
       const errors =
         results

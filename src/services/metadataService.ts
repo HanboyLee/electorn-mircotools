@@ -36,6 +36,14 @@ export class MetadataService extends BaseService {
   ): Promise<WriteMetadataResult[]> {
     const results: any[] = [];
 
+    console.log('開始處理圖片');
+
+    // 确保每次批处理前重新初始化 ExifTool
+    if (this.exiftool) {
+      await this.exiftool.end();
+    }
+    this.exiftool = new ExifTool();
+
     for (const row of csvData) {
       try {
         // 構建完整的圖片路徑

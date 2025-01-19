@@ -2,6 +2,8 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { FileService } from '../services/fileService';
 import { MetadataService } from '../services/metadataService';
 import * as path from 'path';
+// @ts-ignore
+const squirrelStartup = require('electron-squirrel-startup');
 
 // 在開發環境中啟用熱重載
 if (process.env.NODE_ENV === 'development') {
@@ -66,27 +68,44 @@ const initializeServices = () => {
   console.log('Services initialized successfully');
 };
 
-const createWindow = async (): Promise<void> => {
-  console.log(MAIN_WINDOW_VITE_PRELOAD, 'MAIN_WINDOW_VITE_PRELOAD');
-  // Create the browser window.
-  const mainWindow = new BrowserWindow({
-    height: 1000,
-    width: 1200,
-    webPreferences: {
-      preload: MAIN_WINDOW_VITE_PRELOAD,
-      nodeIntegration: true,
-      contextIsolation: true,
-    },
-  });
+const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
 
-  // and load the index.html of the app.
-  if (process.env.NODE_ENV === 'development') {
-    // 开发环境下使用 Vite dev server
-    await mainWindow.loadURL('http://localhost:3000');
-    mainWindow.webContents.openDevTools();
-  } else {
-    // 生产环境下加载打包后的文件
-    await mainWindow.loadFile(MAIN_WINDOW_VITE_ENTRY);
+const createWindow = async (): Promise<void> => {
+  try {
+    console.log('Starting createWindow...');
+    console.log('Current directory:', process.cwd());
+    console.log('Is packaged:', app.isPackaged);
+    console.log('Process env:', process.env);
+
+    // Create the browser window.
+    const mainWindow = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'preload.js'),
+      },
+    });
+
+    // and load the index.html of the app.
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Running in development mode');
+      mainWindow.loadURL(VITE_DEV_SERVER_URL)
+        .catch((err) => {
+          console.error('Error creating window:', err);
+        });
+      mainWindow.webContents.openDevTools();
+    } else {
+      // Load the index.html when not in development
+      mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'))
+        .catch((err) => {
+          console.error('Error loading index.html:', err);
+        });
+    }
+  } catch (err) {
+    console.error('Error creating window:', err);
+    app.quit();
   }
 };
 
@@ -117,9 +136,19 @@ app.on('activate', () => {
   }
 });
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
   app.quit();
+}
+
+// Handle creating/removing shortcuts on Windows when installing/uninstalling
+if (process.platform === 'win32') {
+  const handleStartupEvent = () => {
+    if (require('electron-squirrel-startup')) {
+      app.quit();
+    }
+  };
+  app.on('ready', handleStartupEvent);
+  app.on('window-all-closed', handleStartupEvent);
 }
 
 // In this file you can include the rest of your app's specific main process

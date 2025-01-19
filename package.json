@@ -3,9 +3,9 @@
   "productName": "metadata-app",
   "version": "1.0.0",
   "description": "My Electron application description",
-  "main": ".vite/build/index.js",
+  "main": "./.vite/build/index.js",
   "scripts": {
-    "start": "cross-env NODE_ENV=development ELECTRON_ENABLE_LOGGING=1 ELECTRON_ENABLE_STACK_DUMPING=1 electron-forge start",
+    "start": "electron-forge start",
     "dev": "npm start && electronmon . ",
     "package": "electron-forge package",
     "make": "electron-forge make",
@@ -14,6 +14,10 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\""
   },
+  "files": [
+    ".vite/build/**/*",
+    "package.json"
+  ],
   "electronmon": {
     "patterns": [
       "src/main/index.ts",
@@ -72,7 +76,7 @@
     "@types/react-dom": "^18.2.18",
     "@types/styled-components": "^5.1.34",
     "antd": "^5.23.1",
-    "electron-squirrel-startup": "^1.0.1",
+    "electron-squirrel-startup": "^1.0.0",
     "exifr": "^7.1.3",
     "exiftool-vendored": "^29.0.0",
     "papaparse": "^5.4.1",
