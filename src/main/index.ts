@@ -2,8 +2,38 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { FileService } from '../services/fileService';
 import { MetadataService } from '../services/metadataService';
 import * as path from 'path';
-// @ts-ignore
-const squirrelStartup = require('electron-squirrel-startup');
+
+// Handle creating/removing shortcuts on Windows when installing/uninstalling
+if (process.platform === 'win32') {
+  const squirrelEvents = {
+    handleSquirrelEvent: function() {
+      if (process.argv[1] === '--squirrel-install' ||
+          process.argv[1] === '--squirrel-updated') {
+        // 创建桌面快捷方式
+        const updateExe = path.resolve(path.dirname(process.execPath), '..', 'Update.exe');
+        require('child_process').spawn(updateExe, ['--createShortcut', process.execPath], { detached: true });
+        app.quit();
+        return true;
+      }
+      if (process.argv[1] === '--squirrel-uninstall') {
+        // 删除桌面快捷方式
+        const updateExe = path.resolve(path.dirname(process.execPath), '..', 'Update.exe');
+        require('child_process').spawn(updateExe, ['--removeShortcut', process.execPath], { detached: true });
+        app.quit();
+        return true;
+      }
+      if (process.argv[1] === '--squirrel-obsolete') {
+        app.quit();
+        return true;
+      }
+      return false;
+    }
+  };
+
+  if (squirrelEvents.handleSquirrelEvent()) {
+    app.quit();
+  }
+}
 
 // 在開發環境中啟用熱重載
 if (process.env.NODE_ENV === 'development') {
@@ -19,13 +49,10 @@ if (process.env.NODE_ENV === 'development') {
       paths: [
         path.join(__dirname, '**', '*.ts'),
         path.join(__dirname, '**', '*.js'),
-        path.join(__dirname, '..', 'src', '**', '*.ts'),
-        path.join(__dirname, '..', 'src', '**', '*.js'),
       ],
     });
-    console.log('Hot reload enabled successfully');
   } catch (err) {
-    console.error('Failed to setup hot reload:', err);
+    console.log('Error enabling hot reload:', err);
   }
 }
 
@@ -135,21 +162,6 @@ app.on('activate', () => {
     createWindow();
   }
 });
-
-if (require('electron-squirrel-startup')) {
-  app.quit();
-}
-
-// Handle creating/removing shortcuts on Windows when installing/uninstalling
-if (process.platform === 'win32') {
-  const handleStartupEvent = () => {
-    if (require('electron-squirrel-startup')) {
-      app.quit();
-    }
-  };
-  app.on('ready', handleStartupEvent);
-  app.on('window-all-closed', handleStartupEvent);
-}
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.

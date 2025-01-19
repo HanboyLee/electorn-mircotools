@@ -12,7 +12,7 @@ var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "
 var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
 var _ExifToolTask_instances, parser_fn;
 const electron = require("electron");
-const fs = require("fs");
+const fsSync = require("fs");
 const path = require("path");
 const require$$0$4 = require("node:events");
 const require$$1 = require("node:process");
@@ -23,6 +23,8 @@ const require$$0$3 = require("node:child_process");
 const require$$0$5 = require("node:fs");
 const require$$1$1 = require("node:path");
 const require$$1$2 = require("node:fs/promises");
+const child_process = require("child_process");
+const util = require("util");
 function _interopNamespaceDefault(e) {
   const n2 = Object.create(null, { [Symbol.toStringTag]: { value: "Module" } });
   if (e) {
@@ -39,6 +41,7 @@ function _interopNamespaceDefault(e) {
   n2.default = e;
   return Object.freeze(n2);
 }
+const fsSync__namespace = /* @__PURE__ */ _interopNamespaceDefault(fsSync);
 const path__namespace = /* @__PURE__ */ _interopNamespaceDefault(path);
 class BaseService {
   // 註冊所有處理器
@@ -101,7 +104,7 @@ class FileService extends BaseService {
   async readFile(filePath) {
     console.log("Reading file113:", filePath);
     try {
-      return await fs.promises.readFile(filePath, "utf-8");
+      return await fsSync.promises.readFile(filePath, "utf-8");
     } catch (error) {
       throw new Error(`讀取文件失敗：${error.message}`);
     }
@@ -109,7 +112,7 @@ class FileService extends BaseService {
   async writeFile(filePath, content) {
     console.log("Writing file:", filePath);
     try {
-      await fs.promises.writeFile(filePath, content, "utf-8");
+      await fsSync.promises.writeFile(filePath, content, "utf-8");
     } catch (error) {
       throw new Error(`寫入文件失敗：${error.message}`);
     }
@@ -117,7 +120,7 @@ class FileService extends BaseService {
   async exists(filePath) {
     console.log("Checking if file exists:", filePath);
     try {
-      await fs.promises.access(filePath);
+      await fsSync.promises.access(filePath);
       return true;
     } catch {
       return false;
@@ -142,7 +145,7 @@ class FileService extends BaseService {
    */
   async validateImageDirectory(directoryPath) {
     try {
-      const files = await fs.promises.readdir(directoryPath);
+      const files = await fsSync.promises.readdir(directoryPath);
       const supportedExtensions = /* @__PURE__ */ new Set([".jpg", ".jpeg", ".png"]);
       const imageFiles = files.filter((file) => {
         const ext = path__namespace.extname(file).toLowerCase();
@@ -11955,11 +11958,49 @@ function parseJSON(s2) {
   exports2.ExifTool = ExifTool2;
   exports2.exiftool = new ExifTool2();
 })(ExifTool);
-class MetadataService extends BaseService {
+const execAsync = util.promisify(child_process.exec);
+const _MetadataService = class _MetadataService extends BaseService {
   constructor() {
     super();
-    __publicField(this, "exiftool");
-    this.exiftool = new ExifTool.ExifTool();
+    __publicField(this, "exiftool", null);
+    __publicField(this, "isProcessing", false);
+    __publicField(this, "localExiftoolPath");
+    if (_MetadataService.instance) {
+      return _MetadataService.instance;
+    }
+    const isProduction = process.env.NODE_ENV === "production" || !process.env.NODE_ENV;
+    const appPath = electron.app.getAppPath();
+    console.log("应用路径:", appPath);
+    console.log("是否生产环境:", isProduction);
+    console.log("process.resourcesPath:", process.resourcesPath);
+    const possiblePaths = [
+      // 生产环境路径
+      path__namespace.join(process.resourcesPath || "", "exiftool-13.12_64", "exiftool.exe"),
+      // 开发环境路径
+      path__namespace.join(process.cwd(), "exiftool-13.12_64", "exiftool.exe"),
+      // 额外的备选路径
+      path__namespace.join(appPath, "..", "resources", "exiftool-13.12_64", "exiftool.exe"),
+      path__namespace.join(appPath, "resources", "exiftool-13.12_64", "exiftool.exe")
+    ];
+    console.log("正在检查以下路径:");
+    possiblePaths.forEach((p, i) => console.log(`路径 ${i + 1}:`, p));
+    for (const testPath of possiblePaths) {
+      try {
+        if (fsSync__namespace.existsSync(testPath)) {
+          this.localExiftoolPath = testPath;
+          console.log("找到 ExifTool：", this.localExiftoolPath);
+          break;
+        } else {
+          console.log("路径不存在：", testPath);
+        }
+      } catch (error) {
+        console.log("检查路径时出错：", testPath, error);
+      }
+    }
+    if (!this.localExiftoolPath) {
+      console.error("无法找到 ExifTool，已检查的所有路径都无效");
+    }
+    _MetadataService.instance = this;
   }
   getHandlers() {
     return [
@@ -11969,83 +12010,217 @@ class MetadataService extends BaseService {
       }
     ];
   }
-  /**
-   * 批量寫入元數據到圖片
-   * @param imageDir 圖片目錄路徑
-   * @param csvData CSV數據行數組
-   * @returns 處理結果數組
-   */
-  async writeMetadata(imageDir, csvData) {
-    const results = [];
-    console.log("開始處理圖片");
-    if (this.exiftool) {
-      await this.exiftool.end();
+  async initExifTool() {
+    if (!this.exiftool && process.platform !== "win32") {
+      console.log("macOS: 初始化 ExifTool...");
+      this.exiftool = new ExifTool.ExifTool({
+        taskTimeoutMillis: 6e4,
+        maxTasksPerProcess: 1,
+        minDelayBetweenTasks: 100
+      });
     }
-    this.exiftool = new ExifTool.ExifTool();
-    for (const row of csvData) {
+  }
+  async checkFileAccess(filePath) {
+    try {
+      const normalizedPath = path__namespace.resolve(filePath).replace(/\\/g, "/");
+      console.log("檢查文件訪問權限：", normalizedPath);
+      if (!fsSync__namespace.existsSync(normalizedPath)) {
+        throw new Error("文件不存在");
+      }
+      let fd = null;
       try {
-        const imagePath = path__namespace.join(imageDir, row.Filename);
-        console.log("處理圖片：", imagePath);
+        fd = fsSync__namespace.openSync(normalizedPath, "r+");
+        return true;
+      } catch (error) {
+        console.error("文件訪問錯誤：", error);
+        return false;
+      } finally {
+        if (fd !== null) {
+          fsSync__namespace.closeSync(fd);
+        }
+      }
+    } catch (error) {
+      console.error("文件檢查錯誤：", error);
+      return false;
+    }
+  }
+  async writeMetadataWindows(imagePath, metadata) {
+    console.log("Windows: 使用本地 ExifTool...");
+    console.log("ExifTool 路徑：", this.localExiftoolPath);
+    if (!fsSync__namespace.existsSync(this.localExiftoolPath)) {
+      throw new Error(`ExifTool 不存在：${this.localExiftoolPath}`);
+    }
+    const keywordsList = metadata.Keywords.map((k) => k.trim()).filter(Boolean);
+    const args = [
+      "-overwrite_original",
+      "-codedcharacterset=UTF8",
+      "-charset",
+      "iptc=UTF8",
+      "-m",
+      // 忽略小错误
+      `-Title=${metadata.Title}`,
+      `-Description=${metadata.Description}`,
+      `-IPTC:ObjectName=${metadata.Title}`,
+      `-IPTC:Caption-Abstract=${metadata.Description}`,
+      `-XMP-dc:Title=${metadata.Title}`,
+      `-XMP-dc:Description=${metadata.Description}`,
+      // 分别写入每个关键词到 IPTC 和 XMP-dc
+      ...keywordsList.flatMap((k) => [
+        `-IPTC:Keywords=${k}`,
+        `-XMP-dc:Subject=${k}`
+      ]),
+      imagePath
+    ];
+    try {
+      const command = `"${this.localExiftoolPath}" ${args.map((arg) => `"${arg}"`).join(" ")}`;
+      console.log("執行命令：", command);
+      const { stdout, stderr } = await execAsync(command);
+      if (stderr) {
+        console.log("ExifTool 警告輸出：", stderr);
+        if (!stderr.includes("1 image files updated") && !stderr.toLowerCase().includes("warning")) {
+          throw new Error(stderr);
+        }
+      }
+      console.log("ExifTool 輸出：", stdout);
+      const stats = await fsSync.promises.stat(imagePath);
+      console.log("文件最後修改時間：", stats.mtime);
+      const { stdout: metadataJson } = await execAsync(
+        `"${this.localExiftoolPath}" -json -Title -Description -IPTC:Keywords -XMP-dc:Subject "${imagePath}"`
+      );
+      const writtenMetadata = JSON.parse(metadataJson)[0];
+      let keywords = writtenMetadata["IPTC:Keywords"] || writtenMetadata["XMP-dc:Subject"] || [];
+      if (typeof keywords === "string") {
+        keywords = [keywords];
+      } else if (Array.isArray(keywords)) {
+        keywords = keywords.filter(Boolean);
+      }
+      writtenMetadata.Keywords = keywords;
+      console.log("讀取到的元數據：", writtenMetadata);
+      return writtenMetadata;
+    } catch (error) {
+      if (error instanceof Error && !error.message.toLowerCase().includes("warning")) {
+        console.error("執行 ExifTool 時發生錯誤：", error);
+        throw error;
+      } else {
+        console.log("ExifTool 警告（已忽略）：", error);
+      }
+    }
+  }
+  async writeMetadataMacOS(imagePath, metadata) {
+    if (!this.exiftool) {
+      throw new Error("ExifTool 未初始化");
+    }
+    console.log("macOS: 使用 ExifTool 寫入元數據");
+    await this.exiftool.write(imagePath, metadata);
+    console.log("macOS: 元數據寫入完成");
+  }
+  async writeMetadata(imageDir, csvData) {
+    var _a2, _b;
+    if (this.isProcessing) {
+      throw new Error("另一個處理程序正在運行");
+    }
+    this.isProcessing = true;
+    const results = [];
+    try {
+      console.log("開始處理圖片");
+      console.log("圖片目錄：", imageDir);
+      console.log("運行平台：", process.platform);
+      if (process.platform !== "win32") {
+        await this.initExifTool();
+      } else {
+        if (!fsSync__namespace.existsSync(this.localExiftoolPath)) {
+          throw new Error(`找不到 ExifTool: ${this.localExiftoolPath}`);
+        }
+      }
+      for (const row of csvData) {
         try {
-          await fs.promises.access(imagePath);
-        } catch {
-          console.error("圖片文件不存在：", imagePath);
+          const imagePath = path__namespace.resolve(imageDir, row.Filename).replace(/\\/g, "/");
+          console.log("處理圖片：", imagePath);
+          const canAccess = await this.checkFileAccess(imagePath);
+          if (!canAccess) {
+            throw new Error("無法訪問文件，可能被其他程序佔用");
+          }
+          const metadata = {
+            Title: row.Title,
+            Description: row.Description,
+            Keywords: row.Keywords.split(",").map((k) => k.trim()),
+            "XMP:Title": row.Title,
+            "XMP:Description": row.Description,
+            "IPTC:ObjectName": row.Title,
+            "IPTC:Caption-Abstract": row.Description
+          };
+          console.log("準備寫入元數據：", metadata);
+          let writtenMetadata;
+          if (process.platform === "win32") {
+            writtenMetadata = await this.writeMetadataWindows(imagePath, metadata);
+          } else {
+            await this.writeMetadataMacOS(imagePath, metadata);
+            writtenMetadata = await ((_a2 = this.exiftool) == null ? void 0 : _a2.read(imagePath));
+          }
+          results.push({
+            filename: row.Filename,
+            success: true,
+            metadata: {
+              Title: writtenMetadata.Title,
+              Description: writtenMetadata.Description,
+              Keywords: Array.isArray(writtenMetadata.Keywords) ? writtenMetadata.Keywords : ((_b = writtenMetadata.Keywords) == null ? void 0 : _b.split(";").map((k) => k.trim()).filter((k) => k)) || []
+            }
+          });
+        } catch (error) {
+          console.error("處理圖片時發生錯誤：", error);
           results.push({
             filename: row.Filename,
             success: false,
-            error: "圖片文件不存在"
+            error: error instanceof Error ? error.message : "處理失敗"
           });
-          continue;
         }
-        const metadata = {
-          Title: row.Title,
-          Description: row.Description,
-          Keywords: row.Keywords.split(",").map((k) => k.trim()),
-          //   Subject: row.Keywords.split(',').map(k => k.trim()), // 某些查看器使用 Subject
-          "XMP:Title": row.Title,
-          "XMP:Description": row.Description,
-          //   'XMP:Subject': row.Keywords.split(',').map(k => k.trim()),
-          "IPTC:ObjectName": row.Title,
-          "IPTC:Caption-Abstract": row.Description
-          //   'IPTC:Keywords': row.Keywords.split(',').map(k => k.trim()),
-        };
-        await this.exiftool.write(imagePath, metadata);
-        const writtenMetadata = await this.exiftool.read(imagePath);
-        console.log("寫入後的元數據：", {
-          filename: row.Filename,
-          metadata: {
-            Title: writtenMetadata.Title,
-            Description: writtenMetadata.Description,
-            Keywords: writtenMetadata.Keywords
-          }
-        });
-        results.push({
-          filename: row.Filename,
-          success: true,
-          metadata: {
-            Title: writtenMetadata.Title,
-            Description: writtenMetadata.Description,
-            Keywords: writtenMetadata.Keywords
-          }
-        });
-      } catch (error) {
-        console.error("處理圖片時發生錯誤：", row.Filename, error);
-        results.push({
-          filename: row.Filename,
-          success: false,
-          error: error instanceof Error ? error.message : "寫入元數據時發生錯誤"
-        });
       }
+    } finally {
+      this.isProcessing = false;
     }
     console.log("處理完成，結果：", results);
     return results;
   }
-  // 當服務被銷毀時關閉 ExifTool
   async destroy() {
-    await this.exiftool.end();
+    if (this.exiftool) {
+      try {
+        console.log("關閉 ExifTool...");
+        await this.exiftool.end();
+        this.exiftool = null;
+      } catch (error) {
+        console.error("關閉 ExifTool 時發生錯誤：", error);
+      }
+    }
+  }
+};
+__publicField(_MetadataService, "instance");
+let MetadataService = _MetadataService;
+if (process.platform === "win32") {
+  const squirrelEvents = {
+    handleSquirrelEvent: function() {
+      if (process.argv[1] === "--squirrel-install" || process.argv[1] === "--squirrel-updated") {
+        const updateExe = path__namespace.resolve(path__namespace.dirname(process.execPath), "..", "Update.exe");
+        require("child_process").spawn(updateExe, ["--createShortcut", process.execPath], { detached: true });
+        electron.app.quit();
+        return true;
+      }
+      if (process.argv[1] === "--squirrel-uninstall") {
+        const updateExe = path__namespace.resolve(path__namespace.dirname(process.execPath), "..", "Update.exe");
+        require("child_process").spawn(updateExe, ["--removeShortcut", process.execPath], { detached: true });
+        electron.app.quit();
+        return true;
+      }
+      if (process.argv[1] === "--squirrel-obsolete") {
+        electron.app.quit();
+        return true;
+      }
+      return false;
+    }
+  };
+  if (squirrelEvents.handleSquirrelEvent()) {
+    electron.app.quit();
   }
 }
-require("electron-squirrel-startup");
 if (process.env.NODE_ENV === "development") {
   const electronReloader = require("electron-reloader");
   try {
@@ -12058,14 +12233,11 @@ if (process.env.NODE_ENV === "development") {
       // 指定要监听的文件
       paths: [
         path__namespace.join(__dirname, "**", "*.ts"),
-        path__namespace.join(__dirname, "**", "*.js"),
-        path__namespace.join(__dirname, "..", "src", "**", "*.ts"),
-        path__namespace.join(__dirname, "..", "src", "**", "*.js")
+        path__namespace.join(__dirname, "**", "*.js")
       ]
     });
-    console.log("Hot reload enabled successfully");
   } catch (err) {
-    console.error("Failed to setup hot reload:", err);
+    console.log("Error enabling hot reload:", err);
   }
 }
 electron.ipcMain.handle("send-message", async (event, message) => {
@@ -12141,16 +12313,4 @@ electron.app.on("activate", () => {
     createWindow();
   }
 });
-if (require("electron-squirrel-startup")) {
-  electron.app.quit();
-}
-if (process.platform === "win32") {
-  const handleStartupEvent = () => {
-    if (require("electron-squirrel-startup")) {
-      electron.app.quit();
-    }
-  };
-  electron.app.on("ready", handleStartupEvent);
-  electron.app.on("window-all-closed", handleStartupEvent);
-}
 //# sourceMappingURL=index.js.map
