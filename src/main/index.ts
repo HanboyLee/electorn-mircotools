@@ -127,6 +127,7 @@ const createWindow = async (): Promise<void> => {
     const mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
+      icon: path.join(__dirname, '..', 'assets', process.platform === 'darwin' ? 'icon.icns' : 'icon.ico'),
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: true,

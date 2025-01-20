@@ -27548,6 +27548,7 @@ const createWindow = async () => {
     const mainWindow = new electron.BrowserWindow({
       width: 1200,
       height: 800,
+      icon: path__namespace.join(__dirname, "..", "assets", process.platform === "darwin" ? "icon.icns" : "icon.ico"),
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: true,

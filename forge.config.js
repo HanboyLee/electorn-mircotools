@@ -6,6 +6,7 @@ module.exports = {
     asar: {
       unpack: "**/node_modules/electron-squirrel-startup/**/*"
     },
+    icon: path.join(__dirname, 'src', 'assets', 'icon'),  
     extraResource: ['./exiftool-13.12_64'],
     ignore: [
       /node_modules/,
