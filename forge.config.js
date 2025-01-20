@@ -38,7 +38,7 @@ module.exports = {
         authors: 'hanboy',
         description: 'Metadata Desktop Application',
         setupIcon: './src/assets/icon.ico',
-        loadingGif: './resources/installing.gif',
+        loadingGif: './src/assets/installing.gif',
         noMsi: true,
         remoteReleases: '',
         setupExe: 'metadata-app-setup.exe',
