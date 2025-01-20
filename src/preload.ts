@@ -1,13 +1,13 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
-import { contextBridge, ipcRenderer, ipcMain } from 'electron';
-import type { ElectronAPI, APIChannel } from './types/services';
-import { IPC } from './constants/ipc';
+import { contextBridge, ipcRenderer } from 'electron';
+import type { ElectronAPI } from './types/electron';
+import { IPC, StoreIPC } from './constants/ipc';
 
 // 自動創建 API 代理
-const createAPIProxy = <T extends Record<APIChannel, (...args: any[]) => Promise<any>>>(
-  channels: readonly APIChannel[]
+const createAPIProxy = <T extends Record<string, (...args: any[]) => Promise<any>>>(
+  channels: readonly string[]
 ): T => {
   return channels.reduce((api, channel) => {
     api[channel] = ((...args: any[]) => ipcRenderer.invoke(channel, ...args)) as T[typeof channel];
@@ -25,8 +25,13 @@ const api = createAPIProxy<ElectronAPI>(API_CHANNELS);
 contextBridge.exposeInMainWorld('electronAPI', {
   ...api,
   // 添加系統信息 API
-  getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
-  getSystemInfoSync: () => ipcRenderer.sendSync('get-system-info'),
+  getSystemInfo: () => ipcRenderer.invoke(IPC.GET_SYSTEM_INFO),
+  getSystemInfoSync: () => ipcRenderer.sendSync(IPC.GET_SYSTEM_INFO_SYNC),
+  
+  // Store API
+  storeGet: (key: string) => ipcRenderer.invoke(StoreIPC.GET, key),
+  storeSet: (key: string, value: any) => ipcRenderer.invoke(StoreIPC.SET, key, value),
+  storeDelete: (key: string) => ipcRenderer.invoke(StoreIPC.DELETE, key),
 });
 
 ipcMain.handle('send-message', async (event, message) => {

@@ -5,11 +5,10 @@ import styled from 'styled-components';
 import { logo } from '../../assets/images';
 
 import {
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
   HomeOutlined,
   SettingOutlined,
   FileTextOutlined,
+  PictureOutlined,
 } from '@ant-design/icons';
 
 const { Header, Sider, Content } = Layout;
@@ -34,6 +33,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       key: '/csv-validation',
       icon: <FileTextOutlined />,
       label: 'CSV 驗證',
+    },
+    {
+      key: '/analyze-by-image',
+      icon: <PictureOutlined />,
+      label: '圖片分析',
     },
     {
       key: '/settings',

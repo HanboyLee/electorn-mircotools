@@ -2,6 +2,10 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { FileService } from '../services/fileService';
 import { MetadataService } from '../services/metadataService';
 import * as path from 'path';
+import Store from 'electron-store';
+import { StoreIPC } from '../constants/ipc';
+
+const store = new Store();
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (process.platform === 'win32') {
@@ -76,6 +80,21 @@ ipcMain.handle('get-system-info', async () => {
     version: app.getVersion(),
     electronVersion: process.versions.electron,
   };
+});
+
+// 註冊 store 相關的 IPC 處理程序
+ipcMain.handle(StoreIPC.GET, async (_, key: string) => {
+  return store.get(key);
+});
+
+ipcMain.handle(StoreIPC.SET, async (_, key: string, value: any) => {
+  store.set(key, value);
+  return true;
+});
+
+ipcMain.handle(StoreIPC.DELETE, async (_, key: string) => {
+  store.delete(key);
+  return true;
 });
 
 // 初始化所有服務

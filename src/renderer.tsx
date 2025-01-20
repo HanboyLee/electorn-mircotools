@@ -36,6 +36,7 @@ import MainLayout from './components/Layout/MainLayout';
 import Home from './pages/Home';
 import Settings from './pages/Settings';
 import CsvValidation from './pages/CsvValidator';
+import AnalyzeByImage from './pages/AnalyzeByImage';
 import { getStoredTheme, themes, ThemeType } from './themes';
 
 const App: React.FC = () => {
@@ -49,6 +50,7 @@ const App: React.FC = () => {
             <Route path="/" element={<Home />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/csv-validation" element={<CsvValidation />} />
+            <Route path="/analyze-by-image" element={<AnalyzeByImage />} />
           </Routes>
         </MainLayout>
       </Router>
@@ -59,10 +61,6 @@ const App: React.FC = () => {
 const container = document.getElementById('root');
 const root = createRoot(container!);
 
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+root.render(<App />);
 
 console.log('👋 This message is being logged by "renderer.js", included via webpack');

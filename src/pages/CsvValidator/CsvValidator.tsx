@@ -7,6 +7,7 @@ import { validateCsvContent } from './utils';
 import { CsvValidatorState } from './types';
 import { FileIPC, MetadataIPC } from '../../constants/ipc';
 import { WriteMetadataResult } from '@/types/metadata';
+import { useCsvValidatorStore } from '../../store/hooks';
 
 const { Title } = Typography;
 
@@ -30,7 +31,7 @@ const CsvValidator: React.FC = () => {
       if (!directory) return;
 
       const images = await window.electronAPI[FileIPC.VALIDATE_IMAGE_DIRECTORY](directory);
-      console.log(images,'images')
+      console.log(images, 'images');
 
       setState(prev => ({
         ...prev,
@@ -109,7 +110,7 @@ const CsvValidator: React.FC = () => {
           Keywords: row['Keywords'],
         }))
       );
-      console.log(results,'results')
+      console.log(results, 'results');
 
       const errors =
         results
@@ -176,9 +177,10 @@ const CsvValidator: React.FC = () => {
   };
 
   return (
-    <Card>
+    <Card style={{ width: '100%', height: '100%' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <Title level={4}>CSV 元數據寫入工具</Title>
+        <CsvRequirements />
 
         <div>
           <Button type="primary" onClick={handleDirectorySelect} disabled={state.processing}>
@@ -192,8 +194,6 @@ const CsvValidator: React.FC = () => {
             </div>
           )}
         </div>
-
-        <CsvRequirements />
 
         <CsvUpload
           onUpload={handleCsvUpload}

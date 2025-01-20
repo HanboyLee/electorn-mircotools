@@ -71,6 +71,18 @@ const Home: React.FC = () => {
         </Space>
       </Title>
 
+      <Title level={3}>功能說明</Title>
+      <Paragraph>這個頁面提供了一個測試面板，用於測試基本的文件操作和系統信息獲取功能：</Paragraph>
+      <ul>
+        <li>
+          <Text>文件讀寫：測試文件的讀取和寫入功能</Text>
+        </li>
+        <li>
+          <Text>系統信息：獲取當前系統的基本信息</Text>
+        </li>
+      </ul>
+      <Divider />
+
       <Space direction="vertical" size="large" style={{ width: '100%', marginTop: 24 }}>
         <Input
           placeholder="文件路徑"
@@ -112,19 +124,6 @@ const Home: React.FC = () => {
           </Card>
         )}
       </Space>
-
-      <Divider />
-
-      <Title level={3}>功能說明</Title>
-      <Paragraph>這個頁面提供了一個測試面板，用於測試基本的文件操作和系統信息獲取功能：</Paragraph>
-      <ul>
-        <li>
-          <Text>文件讀寫：測試文件的讀取和寫入功能</Text>
-        </li>
-        <li>
-          <Text>系統信息：獲取當前系統的基本信息</Text>
-        </li>
-      </ul>
     </Card>
   );
 };

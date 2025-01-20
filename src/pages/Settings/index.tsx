@@ -1,45 +1,61 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Typography, Space, Form, Input, Switch, Select, Button, message, Radio } from 'antd';
-import { SettingOutlined, SaveOutlined } from '@ant-design/icons';
-import { ThemeType, themeOptions, getStoredTheme, setStoredTheme } from '../../themes';
+import { Card, Typography, Space, Form, Input, Select, Button, message, Radio, Divider } from 'antd';
+import { SettingOutlined, SaveOutlined, ApiOutlined } from '@ant-design/icons';
+import { ThemeType, themeOptions } from '../../themes';
+import { useSettingsStore } from '../../store/hooks/settings';
+import type { Settings } from '../../store/hooks/settings';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-interface SettingsForm {
-  // defaultImageDirectory: string;
-  // defaultCsvDirectory: string;
-  autoSave: boolean;
-  language: string;
-  theme: ThemeType;
-}
-
 const Settings: React.FC = () => {
-  const [form] = Form.useForm<SettingsForm>();
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const { settings, updateSettings } = useSettingsStore();
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  // 初始化表單
   useEffect(() => {
-    // 初始化表單時載入已保存的主題
     form.setFieldsValue({
-      theme: getStoredTheme(),
+      theme: settings.theme,
+      language: settings.language,
+      openaiApiKey: settings.openaiApiKey,
     });
-  }, []);
+  }, [settings]);
 
-  const onFinish = async (values: SettingsForm) => {
+  // 監聽表單變化
+  const handleFormChange = () => {
+    setHasUnsavedChanges(true);
+  };
+
+  // 保存設置
+  const handleSave = async (values: Partial<Settings>) => {
     setLoading(true);
     try {
-      // 保存主題設置
-      setStoredTheme(values.theme);
-      // 重新載入頁面以應用新主題
-      window.location.reload();
-
-      console.log('保存設置:', values);
+      await updateSettings(values);
+      setHasUnsavedChanges(false);
       message.success('設置已保存');
+      
+      // 如果主題改變了，需要重新載入頁面
+      if (values.theme && values.theme !== settings.theme) {
+        window.location.reload();
+      }
     } catch (error) {
+      console.error('保存設置失敗:', error);
       message.error('保存設置失敗');
     } finally {
       setLoading(false);
     }
+  };
+
+  // 重置表單
+  const handleReset = () => {
+    form.setFieldsValue({
+      theme: settings.theme,
+      language: settings.language,
+      openaiApiKey: settings.openaiApiKey,
+    });
+    setHasUnsavedChanges(false);
   };
 
   return (
@@ -55,35 +71,11 @@ const Settings: React.FC = () => {
         <Form
           form={form}
           layout="vertical"
-          onFinish={onFinish}
-          initialValues={{
-            defaultImageDirectory: '',
-            defaultCsvDirectory: '',
-            autoSave: true,
-            language: 'zh_TW',
-            theme: getStoredTheme(),
-          }}
+          onFinish={handleSave}
+          onValuesChange={handleFormChange}
         >
-          {/* <Form.Item
-              label="默認圖片目錄"
-              name="defaultImageDirectory"
-              rules={[{ required: true, message: '請輸入默認圖片目錄' }]}
-            >
-              <Input placeholder="請選擇默認圖片目錄" />
-            </Form.Item>
-
-            <Form.Item
-              label="默認 CSV 目錄"
-              name="defaultCsvDirectory"
-              rules={[{ required: true, message: '請輸入默認 CSV 目錄' }]}
-            >
-              <Input placeholder="請選擇默認 CSV 目錄" />
-            </Form.Item> */}
-
-          {/* <Form.Item label="自動保存" name="autoSave" valuePropName="checked">
-              <Switch />
-            </Form.Item> */}
-
+          <Divider orientation="left">基本設置</Divider>
+          
           <Form.Item label="界面語言" name="language">
             <Select>
               <Option value="zh_TW">繁體中文</Option>
@@ -102,21 +94,45 @@ const Settings: React.FC = () => {
             </Radio.Group>
           </Form.Item>
 
+          <Divider orientation="left">API 設置</Divider>
+
+          <Form.Item
+            label="OpenAI API 密鑰"
+            name="openaiApiKey"
+            rules={[
+              { required: true, message: '請輸入 OpenAI API 密鑰' },
+              {
+                pattern: /^sk-[A-Za-z0-9]{48}$/,
+                message: '請輸入有效的 OpenAI API 密鑰格式',
+              },
+            ]}
+            extra="API 密鑰可以在 OpenAI 網站獲取。格式應該以 'sk-' 開頭，後跟48個字符。"
+          >
+            <Input.Password
+              prefix={<ApiOutlined />}
+              placeholder="請輸入您的 OpenAI API 密鑰"
+            />
+          </Form.Item>
+
           <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} icon={<SaveOutlined />}>
-              保存設置
-            </Button>
+            <Space>
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                loading={loading}
+                icon={<SaveOutlined />}
+                disabled={!hasUnsavedChanges}
+              >
+                保存設置
+              </Button>
+              {hasUnsavedChanges && (
+                <Button onClick={handleReset}>
+                  重置更改
+                </Button>
+              )}
+            </Space>
           </Form.Item>
         </Form>
-      </Card>
-
-      <Card>
-        <Title level={3}>關於</Title>
-        <Text>
-          Metadata Desktop App v1.0.0
-          <br />
-          一個用於管理圖片元數據的桌面應用程序
-        </Text>
       </Card>
     </Space>
   );
