@@ -97,6 +97,14 @@ export default function Page() {
     }
   };
 
+  const transformToRcFile = (file: File): UploadFile => ({
+    uid: file.name, // 你可以用 file.lastModified 來保證唯一性
+    name: file.name,
+    status: 'done',
+    url: URL.createObjectURL(file),
+    originFileObj: file as any, // 強制轉型為 RcFile
+  });
+
   return (
     <Card style={{ margin: 24 }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -142,13 +150,7 @@ export default function Page() {
               showPreviewIcon: true,
             }}
             listType="picture-card"
-            fileList={state.selectedFiles.map(file => ({
-              uid: file.name,
-              name: file.name,
-              status: 'done',
-              url: URL.createObjectURL(file),
-              originFileObj: file,
-            }))}
+            fileList={state.selectedFiles.map(transformToRcFile)}
           >
             <div
               style={{
