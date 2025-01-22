@@ -1,41 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Typography, Space, Form, Input, Select, Button, message, Radio, Divider } from 'antd';
-import { SettingOutlined, SaveOutlined, ApiOutlined } from '@ant-design/icons';
-import { ThemeType, themeOptions } from '../../themes';
+import { Card, Typography, Space, Form, Button, message, Divider } from 'antd';
+import { SettingOutlined, SaveOutlined } from '@ant-design/icons';
 import { useSettingsStore } from '../../store/hooks/settings';
 import type { Settings } from '../../store/hooks/settings';
+import { useOpenAITest } from './hooks/useOpenAITest';
+import { isEqual } from 'lodash';
+import BasicSettings from './components/BasicSettings';
+import APISettings from './components/APISettings';
 
-const { Title, Text } = Typography;
-const { Option } = Select;
+const { Title } = Typography;
 
 const Settings: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const { settings, updateSettings } = useSettingsStore();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  // 初始化表單
-  useEffect(() => {
-    form.setFieldsValue({
-      theme: settings.theme,
-      language: settings.language,
-      openaiApiKey: settings.openaiApiKey,
-    });
-  }, [settings]);
+  const { status: testStatus, testConnection } = useOpenAITest();
 
   // 監聽表單變化
-  const handleFormChange = () => {
-    setHasUnsavedChanges(true);
+  const handleFormChange = (changedValues: any) => {
+    console.log('Form values changed:', changedValues);
+    checkFormChanges();
+  };
+
+  // 检查表单值是否有变化
+  const checkFormChanges = () => {
+    const currentValues = form.getFieldsValue();
+    const hasChanges = !isEqual(currentValues, settings);
+    setHasUnsavedChanges(hasChanges);
   };
 
   // 保存設置
   const handleSave = async (values: Partial<Settings>) => {
+    console.log('Saving settings:', values);
     setLoading(true);
     try {
       await updateSettings(values);
       setHasUnsavedChanges(false);
       message.success('設置已保存');
-      
+
       // 如果主題改變了，需要重新載入頁面
       if (values.theme && values.theme !== settings.theme) {
         window.location.reload();
@@ -50,13 +53,29 @@ const Settings: React.FC = () => {
 
   // 重置表單
   const handleReset = () => {
-    form.setFieldsValue({
-      theme: settings.theme,
-      language: settings.language,
-      openaiApiKey: settings.openaiApiKey,
-    });
+    form.setFieldsValue(settings);
     setHasUnsavedChanges(false);
   };
+
+  // 測試API連接
+  const handleTestConnection = async () => {
+    const currentApiKey = form.getFieldValue('openaiApiKey');
+    if (!currentApiKey?.trim()) {
+      message.warning('請先輸入API密鑰');
+      return;
+    }
+
+    const result = await testConnection(currentApiKey);
+    if (result?.success) {
+      message.success('API連接測試成功！');
+    }
+  };
+
+  // 当settings变化时更新表单
+  useEffect(() => {
+    console.log('Settings changed, updating form:', settings);
+    form.setFieldsValue(settings);
+  }, [settings, form]);
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -74,54 +93,21 @@ const Settings: React.FC = () => {
           onFinish={handleSave}
           onValuesChange={handleFormChange}
         >
-          <Divider orientation="left">基本設置</Divider>
+          <BasicSettings />
           
-          <Form.Item label="界面語言" name="language">
-            <Select>
-              <Option value="zh_TW">繁體中文</Option>
-              <Option value="en">English</Option>
-              <Option value="ja">日本語</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item label="界面主題" name="theme">
-            <Radio.Group optionType="button" buttonStyle="solid">
-              {themeOptions.map(option => (
-                <Radio.Button key={option.value} value={option.value}>
-                  {option.label}
-                </Radio.Button>
-              ))}
-            </Radio.Group>
-          </Form.Item>
-
           <Divider orientation="left">API 設置</Divider>
-
-          <Form.Item
-            label="OpenAI API 密鑰"
-            name="openaiApiKey"
-            rules={[
-              { required: true, message: '請輸入 OpenAI API 密鑰' },
-              {
-                pattern: /^sk-[A-Za-z0-9]{48}$/,
-                message: '請輸入有效的 OpenAI API 密鑰格式',
-              },
-            ]}
-            extra="API 密鑰可以在 OpenAI 網站獲取。格式應該以 'sk-' 開頭，後跟48個字符。"
-          >
-            <Input.Password
-              prefix={<ApiOutlined />}
-              placeholder="請輸入您的 OpenAI API 密鑰"
-            />
-          </Form.Item>
+          <APISettings
+            onTestConnection={handleTestConnection}
+            testStatus={testStatus}
+          />
 
           <Form.Item>
             <Space>
-              <Button 
-                type="primary" 
-                htmlType="submit" 
+              <Button
+                type="primary"
+                htmlType="submit"
                 loading={loading}
                 icon={<SaveOutlined />}
-                disabled={!hasUnsavedChanges}
               >
                 保存設置
               </Button>

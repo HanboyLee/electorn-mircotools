@@ -28,7 +28,7 @@
 
 import './index.css';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ConfigProvider } from 'antd';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
@@ -37,13 +37,14 @@ import Home from './pages/Home';
 import Settings from './pages/Settings';
 import CsvValidation from './pages/CsvValidator';
 import AnalyzeByImage from './pages/AnalyzeByImage';
-import { getStoredTheme, themes, ThemeType } from './themes';
+import { themes } from './themes';
+import { useSettingsStore } from './store/hooks/settings';
 
 const App: React.FC = () => {
-  const [theme, setTheme] = useState<ThemeType>(getStoredTheme());
+  const { settings } = useSettingsStore();
 
   return (
-    <ConfigProvider theme={themes[theme]}>
+    <ConfigProvider theme={themes[settings.theme]}>
       <Router>
         <MainLayout>
           <Routes>
