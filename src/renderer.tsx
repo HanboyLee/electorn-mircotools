@@ -27,7 +27,6 @@
  */
 
 import './index.css';
-
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ConfigProvider } from 'antd';
@@ -36,22 +35,24 @@ import MainLayout from './components/Layout/MainLayout';
 import Home from './pages/Home';
 import Settings from './pages/Settings';
 import CsvValidation from './pages/CsvValidator';
-import AnalyzeByImage from './pages/AnalyzeByImage';
+import ImageAnalyze from './pages/AnalyzeByImage';
 import { themes } from './themes';
 import { useSettingsStore } from './store/hooks/settings';
+import { GlobalStyle } from './themes/GlobalStyle';
 
 const App: React.FC = () => {
   const { settings } = useSettingsStore();
 
   return (
     <ConfigProvider theme={themes[settings.theme]}>
+      <GlobalStyle theme={settings.theme} />
       <Router>
         <MainLayout>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/csv-validation" element={<CsvValidation />} />
-            <Route path="/analyze-by-image" element={<AnalyzeByImage />} />
+            <Route path="/image-analyze" element={<ImageAnalyze />} />
           </Routes>
         </MainLayout>
       </Router>
