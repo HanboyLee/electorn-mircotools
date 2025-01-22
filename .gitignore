@@ -54,5 +54,7 @@ Thumbs.db
 # webpack
 .webpack/
 # vite
-.vite/*
-.vite/build/
+.vite/
+.vite/build/index.js
+.vite/build/index.js.map
+

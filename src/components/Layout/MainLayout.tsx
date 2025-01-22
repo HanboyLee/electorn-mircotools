@@ -11,6 +11,8 @@ import {
   PictureOutlined,
 } from '@ant-design/icons';
 
+import HeaderContainer from './HeaderContainer'
+
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
 
@@ -79,20 +81,23 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           onClick={({ key }) => navigate(key)}
         />
       </Sider>
-      <Layout>
-        <StyledHeader style={{ background: token.colorBgElevated }}>
-          {/* header添加 */}
-        </StyledHeader>
+      <Layout className='main-layout'>
+        <HeaderContainer style={{ height: collapsed ? 50 : 64, background: token.colorBgElevated }} />
+        {/* header添加 */}
+
         <Content
           style={{
+            height: '100%',
             minHeight: 280,
+            overflowY: "auto",
+            padding: 12,
             background: token.colorBgLayout,
           }}
         >
           {children}
         </Content>
       </Layout>
-    </StyledLayout>
+    </StyledLayout >
   );
 };
 
@@ -100,11 +105,13 @@ export default MainLayout;
 
 const StyledLayout = styled(Layout)`
   min-height: 100vh;
+  .main-layout{
+    height: 100%;
+   
+  }
 `;
 
-const StyledHeader = styled(Header)`
-  padding: 0;
-`;
+
 
 const LogoContainer = styled.div<{ collapsed: boolean }>`
   height: ${props => (props.collapsed ? '50px' : '64px')};

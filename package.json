@@ -16,6 +16,9 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\""
   },
+  "build": {
+    "icon": "./icon.ico"
+  },
   "files": [
     ".vite/build/**/*",
     "package.json"

@@ -64,14 +64,7 @@ const Home: React.FC = () => {
 
   return (
     <Card>
-      <Title level={2}>
-        <Space>
-          <FileTextOutlined />
-          API 測試面板
-        </Space>
-      </Title>
-
-      <Title level={3}>功能說明</Title>
+      <Title level={4}>功能說明</Title>
       <Paragraph>這個頁面提供了一個測試面板，用於測試基本的文件操作和系統信息獲取功能：</Paragraph>
       <ul>
         <li>
