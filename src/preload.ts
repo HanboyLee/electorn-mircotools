@@ -32,9 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   storeGet: (key: string) => ipcRenderer.invoke(StoreIPC.GET, key),
   storeSet: (key: string, value: any) => ipcRenderer.invoke(StoreIPC.SET, key, value),
   storeDelete: (key: string) => ipcRenderer.invoke(StoreIPC.DELETE, key),
-});
-
-ipcMain.handle('send-message', async (event, message) => {
-  console.log('Received message from renderer:', message);
-  return `Server received: ${message}`;
+  
+  // Message API
+  sendMessage: (message: string) => ipcRenderer.invoke('send-message', message),
 });

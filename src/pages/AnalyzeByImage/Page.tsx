@@ -106,9 +106,9 @@ export default function Page() {
   });
 
   return (
-    <Card style={{ margin: 24 }}>
+    <Card>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <Title level={2}>AI 圖片分析器</Title>
+        <Title level={4}>CSV 元數據寫入工具</Title>
 
         {!settings.openaiApiKey && (
           <Alert
