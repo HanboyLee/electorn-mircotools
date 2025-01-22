@@ -116,7 +116,7 @@ export default function Page() {
             message="未配置 OpenAI API 密鑰"
             description={
               <Space direction="vertical">
-                <Text>請先在設置頁面配置您的 OpenAI API 密鑰</Text>
+                <Text>請先在設置頁面配置您的 OpenAI API 密鑰，以便進行圖片分析</Text>
                 <Button type="primary" onClick={() => navigate('/settings')}>
                   前往設置
                 </Button>
