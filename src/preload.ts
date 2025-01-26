@@ -36,3 +36,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Message API
   sendMessage: (message: string) => ipcRenderer.invoke('send-message', message),
 });
+
+// 暴露事件監聽相關的 API
+contextBridge.exposeInMainWorld('electron', {
+  on: (channel: string, callback: (...args: any[]) => void) => {
+    ipcRenderer.on(channel, callback);
+  },
+  removeListener: (channel: string, callback: (...args: any[]) => void) => {
+    ipcRenderer.removeListener(channel, callback);
+  },
+  removeAllListeners: (channel: string) => {
+    ipcRenderer.removeAllListeners(channel);
+  }
+});

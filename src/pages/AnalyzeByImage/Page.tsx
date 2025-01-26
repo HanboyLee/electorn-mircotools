@@ -105,6 +105,11 @@ export default function Page() {
     originFileObj: file as any, // 強制轉型為 RcFile
   });
 
+  const handleClearSelectedFiles = () => {
+    // 清除內容包含：results 和 errors
+    setState(prev => ({ ...prev, selectedFiles: [], results: {}, errors: {} }));
+  };
+
   return (
     <Card>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -136,6 +141,13 @@ export default function Page() {
           </Button>
           <Button onClick={handleExportCsv} disabled={Object.keys(state.results).length === 0}>
             導出 CSV
+          </Button>
+          {/* 清除目前以上傳圖片，都沒有圖片也禁用 */}
+          <Button
+            onClick={handleClearSelectedFiles}
+            disabled={state.selectedFiles.length === 0 || state.analyzing}
+          >
+            清除上傳圖片
           </Button>
         </Space>
 
