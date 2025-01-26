@@ -2,3 +2,4 @@
 export * from './baseService';
 export * from './fileService';
 export * from './metadataService';
+export * from './networkService';

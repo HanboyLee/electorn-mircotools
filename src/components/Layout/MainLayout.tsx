@@ -11,7 +11,8 @@ import {
   PictureOutlined,
 } from '@ant-design/icons';
 
-import HeaderContainer from './HeaderContainer'
+import HeaderContainer from './HeaderContainer';
+import NetworkStatus from '../NetworkStatus';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -37,7 +38,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       label: 'CSV 驗證',
     },
     {
-      key: '/analyze-by-image',
+      key: '/image-analyze',
       icon: <PictureOutlined />,
       label: '圖片分析',
     },
@@ -50,7 +51,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <StyledLayout>
-      <Sider
+      <StyledSider
         trigger={null}
         collapsible
         collapsed={collapsed}
@@ -58,46 +59,49 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           background: token.colorBgContainer,
         }}
       >
-        <LogoContainer collapsed={collapsed} style={{ background: token.colorBgElevated }}>
-          <Avatar
-            onClick={() => setCollapsed(!collapsed)}
-            src={logo}
-            size={collapsed ? 32 : 48}
+        <SiderContent>
+          <LogoContainer collapsed={collapsed} style={{ background: token.colorBgElevated }}>
+            <Avatar
+              onClick={() => setCollapsed(!collapsed)}
+              src={logo}
+              size={collapsed ? 32 : 48}
+              style={{
+                display: 'block',
+                margin: '0 auto',
+                cursor: 'pointer',
+              }}
+            />
+          </LogoContainer>
+          <Menu
             style={{
-              display: 'block',
-              margin: '0 auto',
-              cursor: 'pointer',
+              background: token.colorBgContainer,
             }}
+            theme={token.colorBgContainer === '#141414' ? 'dark' : 'light'}
+            mode="inline"
+            defaultSelectedKeys={['/']}
+            items={menuItems}
+            onClick={({ key }) => navigate(key)}
           />
-        </LogoContainer>
-        <Menu
-          style={{
-            background: token.colorBgContainer,
-          }}
-          theme={token.colorBgContainer === '#141414' ? 'dark' : 'light'}
-          mode="inline"
-          defaultSelectedKeys={['/']}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
+          <NetworkStatus collapsed={collapsed} />
+        </SiderContent>
+      </StyledSider>
+      <StyledMainLayout collapsed={collapsed}>
+        <HeaderContainer
+          style={{ height: collapsed ? 50 : 64, background: token.colorBgElevated }}
         />
-      </Sider>
-      <Layout className='main-layout'>
-        <HeaderContainer style={{ height: collapsed ? 50 : 64, background: token.colorBgElevated }} />
-        {/* header添加 */}
-
         <Content
           style={{
             height: '100%',
             minHeight: 280,
-            overflowY: "auto",
+            overflowY: 'auto',
             padding: 12,
             background: token.colorBgLayout,
           }}
         >
           {children}
         </Content>
-      </Layout>
-    </StyledLayout >
+      </StyledMainLayout>
+    </StyledLayout>
   );
 };
 
@@ -105,21 +109,36 @@ export default MainLayout;
 
 const StyledLayout = styled(Layout)`
   min-height: 100vh;
-  .main-layout{
-    height: 100%;
-   
+`;
+
+const StyledSider = styled(Sider)`
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 100;
+`;
+
+const SiderContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .ant-menu {
+    flex: 1;
+    overflow-y: auto;
+    border-inline-end: none !important;
   }
 `;
 
-
+const StyledMainLayout = styled(Layout)<{ collapsed: boolean }>`
+  margin-left: ${props => (props.collapsed ? '80px' : '200px')};
+  transition: margin-left 0.2s;
+`;
 
 const LogoContainer = styled.div<{ collapsed: boolean }>`
   height: ${props => (props.collapsed ? '50px' : '64px')};
   padding: ${props => (props.collapsed ? '9px 8px' : '8px')};
   transition: all 0.2s;
-  margin-bottom: 8px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;

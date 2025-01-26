@@ -81,6 +81,7 @@
     "@types/react-dom": "^18.2.18",
     "@types/styled-components": "^5.1.34",
     "antd": "^5.23.1",
+    "dns": "^0.2.2",
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^10.0.0",
     "exifr": "^7.1.3",

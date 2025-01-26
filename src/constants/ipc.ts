@@ -20,11 +20,20 @@ export enum StoreIPC {
   DELETE = 'store:delete',
 }
 
+// 網絡相關的 IPC 通道
+export enum NetworkIPC {
+  CHECK_CONNECTION = 'network:check-connection',
+  START_AUTO_CHECK = 'network:start-auto-check',
+  STOP_AUTO_CHECK = 'network:stop-auto-check',
+  NETWORK_STATUS_UPDATE = 'network:status:update',
+}
+
 // 導出所有 IPC 通道
 export const IPC = {
   ...FileIPC,
   ...MetadataIPC,
   ...StoreIPC,
+  ...NetworkIPC,
   SEND_MESSAGE: 'send-message',
   GET_SYSTEM_INFO: 'get-system-info',
   GET_SYSTEM_INFO_SYNC: 'get-system-info-sync',
