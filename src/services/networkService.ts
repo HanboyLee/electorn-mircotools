@@ -12,7 +12,7 @@ export interface NetworkStatus {
 
 export class NetworkService extends BaseService {
   private checkInterval: NodeJS.Timer | null = null;
-  private readonly CHECK_INTERVAL = 5000; // 5秒
+  private readonly CHECK_INTERVAL = 30000; // 30秒
   private isChecking: boolean = false;
   private readonly CHECK_URL = 'https://www.google.com';
   private readonly TIMEOUT = 5000; // 5秒超時
@@ -35,6 +35,14 @@ export class NetworkService extends BaseService {
       {
         channel: IPC.STOP_AUTO_CHECK,
         handler: this.stopAutoCheck.bind(this),
+      },
+      {
+        channel: IPC.CHECK_INTERVAL_TIME,
+        handler: this.checkIntervalTime.bind(this),
+      },
+      {
+        channel: IPC.CHECK_URL,
+        handler: this.checkUrl.bind(this),
       },
     ];
   }
@@ -143,6 +151,14 @@ export class NetworkService extends BaseService {
       clearInterval(this.checkInterval as any);
       this.checkInterval = null;
     }
+  }
+
+  private checkIntervalTime(): number {
+    return this.CHECK_INTERVAL;
+  }
+
+  private checkUrl(): string {
+    return this.CHECK_URL;
   }
 
   private broadcastStatus(status: NetworkStatus): void {

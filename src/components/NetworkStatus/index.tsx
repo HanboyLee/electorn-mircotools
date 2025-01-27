@@ -7,8 +7,14 @@ interface NetworkStatusProps {
 }
 
 const NetworkStatusComponent: React.FC<NetworkStatusProps> = ({ collapsed }) => {
-  const { status } = useNetwork();
-  return <StatusIndicator status={status} collapsed={collapsed} />;
+  const { status, tooltipCheckContent } = useNetwork();
+  return (
+    <StatusIndicator
+      tooltipCheckContent={tooltipCheckContent}
+      status={status}
+      collapsed={collapsed}
+    />
+  );
 };
 
 export default NetworkStatusComponent;

@@ -9,25 +9,10 @@ export const useNetwork = () => {
     timestamp: Date.now(),
     checking: true,
   });
-
-  useEffect(() => {
-    const handleStatusUpdate = (event: any, newStatus: NetworkStatus) => {
-      //測試連線
-      // console.log('Network status updated:', newStatus);
-      setStatus(newStatus);
-    };
-
-    // 訂閱網絡狀態更新
-    window.electron.on(IPC.NETWORK_STATUS_UPDATE, handleStatusUpdate);
-
-    // 啟動自動檢查
-    startAutoCheck();
-
-    return () => {
-      window.electron.removeListener(IPC.NETWORK_STATUS_UPDATE, handleStatusUpdate);
-      stopAutoCheck();
-    };
-  }, []);
+  const [tooltipCheckContent, setTooltipCheckContent] = useState({
+    intervalTime: 0,
+    checkUrl: '',
+  });
 
   const checkConnection = async () => {
     try {
@@ -57,11 +42,63 @@ export const useNetwork = () => {
       throw error;
     }
   };
+  const getCheckIntervalTime = async () => {
+    try {
+      const time = await window.electronAPI[IPC.CHECK_INTERVAL_TIME]();
+      setTooltipCheckContent(prev => ({
+        ...prev,
+        intervalTime: time,
+      }));
+    } catch (error) {
+      console.error('檢查間隔時間失敗:', error);
+      throw error;
+    }
+  };
+  const getCheckUrl = async () => {
+    try {
+      const url = await window.electronAPI[IPC.CHECK_URL]();
+      setTooltipCheckContent(prev => ({
+        ...prev,
+        checkUrl: url,
+      }));
+    } catch (error) {
+      console.error('檢查 URL 失敗:', error);
+      throw error;
+    }
+  };
+
+  const getTooltipInit = () => {
+    getCheckIntervalTime();
+    getCheckUrl();
+  };
+
+  useEffect(() => {
+    const handleStatusUpdate = (event: any, newStatus: NetworkStatus) => {
+      //測試連線
+      // console.log('Network status updated:', newStatus);
+      setStatus(newStatus);
+    };
+
+    // 訂閱網絡狀態更新
+    window.electron.on(IPC.NETWORK_STATUS_UPDATE, handleStatusUpdate);
+
+    // 啟動自動檢查
+    startAutoCheck();
+
+    // 獲取Tooltip初始值
+    getTooltipInit();
+
+    return () => {
+      window.electron.removeListener(IPC.NETWORK_STATUS_UPDATE, handleStatusUpdate);
+      stopAutoCheck();
+    };
+  }, []);
 
   return {
     status,
     checkConnection,
     startAutoCheck,
     stopAutoCheck,
+    tooltipCheckContent,
   };
 };
