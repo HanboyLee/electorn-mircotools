@@ -7,7 +7,6 @@ import { validateCsvContent } from './utils';
 import { CsvValidatorState } from './types';
 import { FileIPC, MetadataIPC } from '../../constants/ipc';
 import { WriteMetadataResult } from '@/types/metadata';
-import { useCsvValidatorStore } from '../../store/hooks';
 
 const { Title } = Typography;
 

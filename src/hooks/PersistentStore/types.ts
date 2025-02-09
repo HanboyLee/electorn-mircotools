@@ -1,8 +1,6 @@
-import { CsvValidatorState } from './hooks/csvValidator/types';
-import { Settings } from './hooks/settings/types';
+import { Settings } from '@/hooks/SettingsStore/types';
 
 export interface AppState {
-  csvValidator: CsvValidatorState;
   settings: Settings;
 }
 

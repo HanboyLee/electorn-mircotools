@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Typography, Space, Form, Button, message, Divider } from 'antd';
 import { SettingOutlined, SaveOutlined } from '@ant-design/icons';
-import { useSettingsStore } from '../../store/hooks/settings';
-import type { Settings } from '../../store/hooks/settings';
+import { useSettingsStore } from '@/hooks/SettingsStore';
+import type { Settings } from '@/hooks/SettingsStore';
 import { useOpenAITest } from './hooks/useOpenAITest';
 import { isEqual } from 'lodash';
 import BasicSettings from './components/BasicSettings';
@@ -87,35 +87,18 @@ const Settings: React.FC = () => {
           </Title>
         </Space>
 
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSave}
-          onValuesChange={handleFormChange}
-        >
+        <Form form={form} layout="vertical" onFinish={handleSave} onValuesChange={handleFormChange}>
           <BasicSettings />
-          
+
           <Divider orientation="left">API 設置</Divider>
-          <APISettings
-            onTestConnection={handleTestConnection}
-            testStatus={testStatus}
-          />
+          <APISettings onTestConnection={handleTestConnection} testStatus={testStatus} />
 
           <Form.Item>
             <Space>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                icon={<SaveOutlined />}
-              >
+              <Button type="primary" htmlType="submit" loading={loading} icon={<SaveOutlined />}>
                 保存設置
               </Button>
-              {hasUnsavedChanges && (
-                <Button onClick={handleReset}>
-                  重置更改
-                </Button>
-              )}
+              {hasUnsavedChanges && <Button onClick={handleReset}>重置更改</Button>}
             </Space>
           </Form.Item>
         </Form>

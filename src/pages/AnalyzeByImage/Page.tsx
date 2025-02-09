@@ -6,7 +6,7 @@ import type { UploadFile } from 'antd/es/upload/interface';
 import { AnalysisResults } from './components/AnalysisResults';
 import { analyzeImage } from './services/openai';
 import { exportToCsv } from './utils/csv';
-import { useSettingsStore } from '../../store/hooks/settings';
+import { useSettingsStore } from '@/hooks/SettingsStore';
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
