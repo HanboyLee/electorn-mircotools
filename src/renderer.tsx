@@ -45,7 +45,7 @@ const App: React.FC = () => {
 
   return (
     <ConfigProvider theme={themes[settings.theme]}>
-      <GlobalStyle theme={settings.theme} />
+      <GlobalStyle theme={{ current: settings.theme }} />
       <Router>
         <MainLayout>
           <Routes>

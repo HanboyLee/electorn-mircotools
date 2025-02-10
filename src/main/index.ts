@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
+// Vite 會自動處理環境變數，不需要手動載入
 import { FileService } from '../services/fileService';
 import { MetadataService } from '../services/metadataService';
 import { NetworkService } from '../services/networkService';
@@ -184,10 +185,12 @@ const createWindow = async (): Promise<void> => {
 
       webPreferences: {
         nodeIntegration: true,
-
         contextIsolation: true,
-
         preload: path.join(__dirname, 'preload.js'),
+        additionalArguments: [
+          `--shutterstock-app-id=${process.env.SHUTTERSTOCK_APPLICATION_ID}`,
+          `--shutterstock-app-sec=${process.env.SHUTTERSTOCK_APPLICATION_SEC}`,
+        ],
       },
     });
 
@@ -227,12 +230,14 @@ const createWindow = async (): Promise<void> => {
 
 // Some APIs can only be used after this event occurs.
 
-app.on('ready', () => {
+app.on('ready', async () => {
   console.log('App is ready, initializing...');
 
-  createWindow();
-
+  // 初始化服務
   initializeServices();
+
+  // 創建主視窗
+  await createWindow();
 
   console.log('App initialization completed');
 });

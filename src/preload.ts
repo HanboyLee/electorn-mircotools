@@ -39,6 +39,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 // 暴露事件監聽相關的 API
 contextBridge.exposeInMainWorld('electron', {
+  env: {
+    SHUTTERSTOCK_APPLICATION_ID: process.argv.find(arg => arg.startsWith('--shutterstock-app-id='))?.split('=')[1] || '',
+    SHUTTERSTOCK_APPLICATION_SEC: process.argv.find(arg => arg.startsWith('--shutterstock-app-sec='))?.split('=')[1] || '',
+  },
   on: (channel: string, callback: (...args: any[]) => void) => {
     ipcRenderer.on(channel, callback);
   },
