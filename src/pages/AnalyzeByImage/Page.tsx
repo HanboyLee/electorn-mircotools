@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import styled from 'styled-components';
 import { Button, Card, Space, Typography, Upload, message, Spin, Alert } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { AnalysisResults } from './components/AnalysisResults';
 import { analyzeImage } from './services/openai';
 import { exportToCsv } from './utils/csv';
-import { useSettingsStore } from '../../store/hooks/settings';
+import { useSettingsStore } from '@/hooks/SettingsStore';
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
@@ -161,10 +162,10 @@ export default function Page() {
               showRemoveIcon: true,
               showPreviewIcon: true,
             }}
-            listType="picture-card"
+            listType="text"
             fileList={state.selectedFiles.map(transformToRcFile)}
           >
-            <div
+            <WrapperUpload
               style={{
                 padding: 8,
                 display: 'flex',
@@ -174,8 +175,10 @@ export default function Page() {
               }}
             >
               <UploadOutlined style={{ fontSize: 24, color: '#666' }} />
-              <div style={{ color: '#666' }}>選擇圖片</div>
-            </div>
+              <div className="upload-text" style={{ color: '#666' }}>
+                選擇圖片
+              </div>
+            </WrapperUpload>
           </Upload>
         </div>
 
@@ -191,3 +194,11 @@ export default function Page() {
     </Card>
   );
 }
+
+const WrapperUpload = styled.div`
+  background-color: #fff;
+  color: #000;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 1px dashed #d9d9d9;
+`;

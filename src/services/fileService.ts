@@ -83,7 +83,7 @@ export class FileService extends BaseService {
   private async validateImageDirectory(directoryPath: string): Promise<string[]> {
     try {
       const files = await fs.readdir(directoryPath);
-      const supportedExtensions = new Set(['.jpg', '.jpeg', '.png']);
+      const supportedExtensions = new Set(['.jpg', '.jpeg', '.png', '.mp4']);
 
       const imageFiles = files.filter(file => {
         const ext = path.extname(file).toLowerCase();

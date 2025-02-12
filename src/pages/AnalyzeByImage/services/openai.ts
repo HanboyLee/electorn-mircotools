@@ -1,16 +1,32 @@
 import OpenAI from 'openai';
 import { AnalysisResult } from '../types';
 
-function readFileAsBase64(file: File): Promise<string> {
+function convertToWebP(file: File, quality = 0.7): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      // 移除 data URL 前綴，只保留 base64 部分
-      const base64 = result.split(',')[1];
-      resolve(base64);
+
+    reader.onload = event => {
+      const img = new Image();
+      img.src = event.target.result as string;
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        ctx.drawImage(img, 0, 0, img.width, img.height);
+
+        // 設定 WebP 品質
+        const base64String = canvas.toDataURL('image/webp', quality);
+        resolve(base64String);
+      };
+
+      img.onerror = error => reject(error);
     };
-    reader.onerror = () => reject(reader.error);
+
+    reader.onerror = error => reject(error);
     reader.readAsDataURL(file);
   });
 }
@@ -18,8 +34,8 @@ function readFileAsBase64(file: File): Promise<string> {
 export async function analyzeImage(file: File, apiKey: string): Promise<AnalysisResult> {
   try {
     // 使用 FileReader 讀取文件
-    const base64Image = await readFileAsBase64(file);
-    const dataUrl = `data:${file.type};base64,${base64Image}`;
+
+    const dataUrl = await convertToWebP(file, 0.7);
 
     const client = new OpenAI({
       apiKey: apiKey,

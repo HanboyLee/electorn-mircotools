@@ -2,12 +2,12 @@ import { createGlobalStyle } from 'styled-components';
 import { createScrollbarStyle, scrollbarThemes } from './scrollbar';
 
 interface GlobalStyleProps {
-  theme: 'light' | 'dark' | 'blue';
+  theme: 'light' | 'dark' | 'blue' | any;
 }
 
 export const GlobalStyle = createGlobalStyle<GlobalStyleProps>`
   * {
-    ${props => createScrollbarStyle(scrollbarThemes[props.theme])}
+    ${props => createScrollbarStyle(scrollbarThemes[props.theme] || scrollbarThemes.light)}
   }
 
   /* 特定容器的滚动条样式 */
@@ -15,6 +15,6 @@ export const GlobalStyle = createGlobalStyle<GlobalStyleProps>`
   .ant-layout-sider,
   .ant-modal-content,
   .ant-drawer-content {
-    ${props => createScrollbarStyle(scrollbarThemes[props.theme])}
+    ${props => createScrollbarStyle(scrollbarThemes[props.theme] || scrollbarThemes.light)}
   }
 `;

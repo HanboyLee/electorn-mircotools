@@ -26,6 +26,8 @@ export enum NetworkIPC {
   START_AUTO_CHECK = 'network:start-auto-check',
   STOP_AUTO_CHECK = 'network:stop-auto-check',
   NETWORK_STATUS_UPDATE = 'network:status:update',
+  CHECK_INTERVAL_TIME = 'network:check-interval-time',
+  CHECK_URL = 'network:check-url',
 }
 
 // 導出所有 IPC 通道

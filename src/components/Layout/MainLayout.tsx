@@ -9,13 +9,13 @@ import {
   SettingOutlined,
   FileTextOutlined,
   PictureOutlined,
+  StockOutlined,
 } from '@ant-design/icons';
 
 import HeaderContainer from './HeaderContainer';
 import NetworkStatus from '../NetworkStatus';
 
-const { Header, Sider, Content } = Layout;
-const { Text } = Typography;
+const { Sider, Content } = Layout;
 
 interface MainLayoutProps {
   children: React.ReactNode;

@@ -39,7 +39,7 @@ export class MetadataService extends BaseService {
       path.join(process.cwd(), 'exiftool-13.12_64', 'exiftool.exe'),
       // 额外的备选路径
       path.join(appPath, '..', 'resources', 'exiftool-13.12_64', 'exiftool.exe'),
-      path.join(appPath, 'resources', 'exiftool-13.12_64', 'exiftool.exe')
+      path.join(appPath, 'resources', 'exiftool-13.12_64', 'exiftool.exe'),
     ];
 
     console.log('正在检查以下路径:');
@@ -116,19 +116,20 @@ export class MetadataService extends BaseService {
   private async writeMetadataWindows(imagePath: string, metadata: any): Promise<any> {
     console.log('Windows: 使用本地 ExifTool...');
     console.log('ExifTool 路徑：', this.localExiftoolPath);
-    
+
     if (!fsSync.existsSync(this.localExiftoolPath)) {
       throw new Error(`ExifTool 不存在：${this.localExiftoolPath}`);
     }
 
     // 处理关键词：分别写入每个关键词
     const keywordsList = metadata.Keywords.map(k => k.trim()).filter(Boolean);
-    
+
     // 构建命令行参数
     const args = [
       '-overwrite_original',
       '-codedcharacterset=UTF8',
-      '-charset', 'iptc=UTF8',
+      '-charset',
+      'iptc=UTF8',
       '-m', // 忽略小错误
       `-Title=${metadata.Title}`,
       `-Description=${metadata.Description}`,
@@ -137,39 +138,39 @@ export class MetadataService extends BaseService {
       `-XMP-dc:Title=${metadata.Title}`,
       `-XMP-dc:Description=${metadata.Description}`,
       // 分别写入每个关键词到 IPTC 和 XMP-dc
-      ...keywordsList.flatMap(k => [
-        `-IPTC:Keywords=${k}`,
-        `-XMP-dc:Subject=${k}`
-      ]),
-      imagePath
+      ...keywordsList.flatMap(k => [`-IPTC:Keywords=${k}`, `-XMP-dc:Subject=${k}`]),
+      imagePath,
     ];
 
     // 执行命令
     try {
       const command = `"${this.localExiftoolPath}" ${args.map(arg => `"${arg}"`).join(' ')}`;
       console.log('執行命令：', command);
-      
+
       const { stdout, stderr } = await execAsync(command);
-      
+
       if (stderr) {
         console.log('ExifTool 警告輸出：', stderr);
-        if (!stderr.includes('1 image files updated') && !stderr.toLowerCase().includes('warning')) {
+        if (
+          !stderr.includes('1 image files updated') &&
+          !stderr.toLowerCase().includes('warning')
+        ) {
           throw new Error(stderr);
         }
       }
-      
+
       console.log('ExifTool 輸出：', stdout);
 
       // 验证文件是否被更新
       const stats = await fs.stat(imagePath);
       console.log('文件最後修改時間：', stats.mtime);
-      
+
       // 读取更新后的元数据
       const { stdout: metadataJson } = await execAsync(
         `"${this.localExiftoolPath}" -json -Title -Description -IPTC:Keywords -XMP-dc:Subject "${imagePath}"`
       );
       const writtenMetadata = JSON.parse(metadataJson)[0];
-      
+
       // 处理读取到的关键词
       let keywords = writtenMetadata['IPTC:Keywords'] || writtenMetadata['XMP-dc:Subject'] || [];
       if (typeof keywords === 'string') {
@@ -178,10 +179,9 @@ export class MetadataService extends BaseService {
         keywords = keywords.filter(Boolean);
       }
       writtenMetadata.Keywords = keywords;
-      
+
       console.log('讀取到的元數據：', writtenMetadata);
       return writtenMetadata;
-      
     } catch (error) {
       if (error instanceof Error && !error.message.toLowerCase().includes('warning')) {
         console.error('執行 ExifTool 時發生錯誤：', error);
@@ -217,7 +217,7 @@ export class MetadataService extends BaseService {
       console.log('開始處理圖片');
       console.log('圖片目錄：', imageDir);
       console.log('運行平台：', process.platform);
-      
+
       if (process.platform !== 'win32') {
         await this.initExifTool();
       } else {
@@ -236,15 +236,29 @@ export class MetadataService extends BaseService {
             throw new Error('無法訪問文件，可能被其他程序佔用');
           }
 
-          const metadata = {
-            Title: row.Title,
-            Description: row.Description,
-            Keywords: row.Keywords.split(',').map(k => k.trim()),
-            'XMP:Title': row.Title,
-            'XMP:Description': row.Description,
-            'IPTC:ObjectName': row.Title,
-            'IPTC:Caption-Abstract': row.Description,
-          };
+          const ext = path.extname(imagePath).toLowerCase();
+          const isVideo = ext === '.mp4';
+
+          const metadata = isVideo
+            ? {
+                Title: row.Title,
+                Description: row.Description,
+                Keywords: row.Keywords.split(',').map(k => k.trim()),
+                'QuickTime:Title': row.Title,
+                'QuickTime:Description': row.Description,
+                'XMP-dc:Title': row.Title,
+                'XMP-dc:Description': row.Description,
+                'XMP-dc:Subject': row.Keywords.split(',').map(k => k.trim()),
+              }
+            : {
+                Title: row.Title,
+                Description: row.Description,
+                Keywords: row.Keywords.split(',').map(k => k.trim()),
+                'XMP:Title': row.Title,
+                'XMP:Description': row.Description,
+                'IPTC:ObjectName': row.Title,
+                'IPTC:Caption-Abstract': row.Description,
+              };
 
           console.log('準備寫入元數據：', metadata);
 
@@ -262,7 +276,11 @@ export class MetadataService extends BaseService {
             metadata: {
               Title: writtenMetadata.Title,
               Description: writtenMetadata.Description,
-              Keywords: Array.isArray(writtenMetadata.Keywords) ? writtenMetadata.Keywords : writtenMetadata.Keywords?.split(';').map(k => k.trim()).filter(k => k) || []
+              Keywords: Array.isArray(writtenMetadata.Keywords)
+                ? writtenMetadata.Keywords
+                : writtenMetadata.Keywords?.split(';')
+                    .map(k => k.trim())
+                    .filter(k => k) || [],
             },
           });
         } catch (error) {

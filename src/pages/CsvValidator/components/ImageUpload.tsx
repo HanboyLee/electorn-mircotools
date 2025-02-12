@@ -6,7 +6,7 @@ import type { RcFile } from 'antd/es/upload';
 
 const { Dragger } = Upload;
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/jpg'];
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'video/mp4'];
 const MAX_FILE_COUNT = 100; // 設置最大文件數量
 
 /**

@@ -37,7 +37,7 @@ import Settings from './pages/Settings';
 import CsvValidation from './pages/CsvValidator';
 import ImageAnalyze from './pages/AnalyzeByImage';
 import { themes } from './themes';
-import { useSettingsStore } from './store/hooks/settings';
+import { useSettingsStore } from '@/hooks/SettingsStore';
 import { GlobalStyle } from './themes/GlobalStyle';
 
 const App: React.FC = () => {
@@ -45,7 +45,7 @@ const App: React.FC = () => {
 
   return (
     <ConfigProvider theme={themes[settings.theme]}>
-      <GlobalStyle theme={settings.theme} />
+      <GlobalStyle theme={{ current: settings.theme }} />
       <Router>
         <MainLayout>
           <Routes>

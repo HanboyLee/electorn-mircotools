@@ -3,7 +3,7 @@ import Papa, { ParseResult } from 'papaparse';
 
 // 修改為與 CSV 文件中的表頭名稱匹配（首字母大寫）
 const REQUIRED_HEADERS = ['Filename', 'Title', 'Description', 'Keywords'];
-const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
+const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.mp4'];
 
 /**
  * 驗證CSV內容
@@ -23,7 +23,7 @@ export const validateCsvContent = (data: any[]): ValidationError[] => {
           type: 'data',
           row: rowIndex + 1,
           field: header,
-          message: `第 ${rowIndex + 1} 行: ${header} 不能為空`
+          message: `第 ${rowIndex + 1} 行: ${header} 不能為空`,
         });
       }
 
@@ -36,7 +36,7 @@ export const validateCsvContent = (data: any[]): ValidationError[] => {
             type: 'data',
             row: rowIndex + 1,
             field: header,
-            message: `第 ${rowIndex + 1} 行: "${value}" 不是支持的圖片格式，僅支持 ${ALLOWED_IMAGE_EXTENSIONS.join(', ')}`
+            message: `第 ${rowIndex + 1} 行: "${value}" 不是支持的圖片格式，僅支持 ${ALLOWED_IMAGE_EXTENSIONS.join(', ')}`,
           });
         }
       }
@@ -49,7 +49,7 @@ export const validateCsvContent = (data: any[]): ValidationError[] => {
             type: 'data',
             row: rowIndex + 1,
             field: header,
-            message: `第 ${rowIndex + 1} 行: Keywords 不能包含空值`
+            message: `第 ${rowIndex + 1} 行: Keywords 不能包含空值`,
           });
         }
       }
@@ -64,7 +64,7 @@ export const validateCsvContent = (data: any[]): ValidationError[] => {
  * @param file CSV文件
  * @returns Promise<{data: any[], headers: string[]}>
  */
-export const parseCsv = (file: File): Promise<{ data: any[], headers: string[] }> => {
+export const parseCsv = (file: File): Promise<{ data: any[]; headers: string[] }> => {
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
       header: true,
@@ -80,7 +80,7 @@ export const parseCsv = (file: File): Promise<{ data: any[], headers: string[] }
           }
 
           const headers = Object.keys(results.data[0]);
-          
+
           // 驗證表頭
           const missingHeaders = REQUIRED_HEADERS.filter(
             required => !headers.some(h => h === required)
@@ -98,7 +98,7 @@ export const parseCsv = (file: File): Promise<{ data: any[], headers: string[] }
 
           resolve({
             data: results.data,
-            headers: headers
+            headers: headers,
           });
         } catch (error) {
           reject(error);
@@ -106,7 +106,7 @@ export const parseCsv = (file: File): Promise<{ data: any[], headers: string[] }
       },
       error: (error: Error) => {
         reject(new Error(`解析 CSV 文件失敗: ${error.message}`));
-      }
+      },
     });
   });
 };
@@ -117,6 +117,8 @@ export const parseCsv = (file: File): Promise<{ data: any[], headers: string[] }
  */
 export const generateCsvTemplate = (): string => {
   const headers = REQUIRED_HEADERS.join(',');
-  const example = ['example.jpg', 'Example Title', 'Example Description', 'keyword1,keyword2'].join(',');
+  const example = ['example.jpg', 'Example Title', 'Example Description', 'keyword1,keyword2'].join(
+    ','
+  );
   return `${headers}\n${example}`;
 };

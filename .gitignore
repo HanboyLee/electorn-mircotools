@@ -51,6 +51,7 @@ out/
 # OS
 Thumbs.db
 
+
 # webpack
 .webpack/
 # vite
@@ -58,3 +59,7 @@ Thumbs.db
 .vite/build/index.js
 .vite/build/index.js.map
 
+#rules
+.windsurfrules
+
+.env*
