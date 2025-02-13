@@ -1,9 +1,9 @@
-# Settings页面 OpenAI API测试功能实现方案
+# Settings 頁面 OpenAI API 測試功能實施方案
 
-## 1. 基础设施搭建
+## 1. 基礎設施搭建
 
-### 1.1 OpenAI服务实现
-创建文件：`src/services/openai.ts`
+### 1.1 OpenAI 服務實現
+創建文件：`src/services/openai.ts`
 ```typescript
 import { Configuration, OpenAIApi } from 'openai';
 
@@ -25,7 +25,7 @@ export class OpenAIService {
         throw new Error('API key is not configured');
       }
       
-      // 使用最轻量的API调用来测试连接
+      // 使用最輕量的 API 調用來測試連接
       await this.api.listModels();
       return { success: true };
     } catch (error: any) {
@@ -38,17 +38,17 @@ export class OpenAIService {
 
   private formatError(error: any): string {
     if (error.response?.status === 401) {
-      return 'Invalid API key';
+      return '無效的 API 密鑰';
     }
     if (error.response?.status === 429) {
-      return 'Rate limit exceeded';
+      return '已超出 API 調用限制';
     }
-    return error.message || 'Unknown error occurred';
+    return error.message || '發生未知錯誤';
   }
 }
 ```
 
-### 1.2 类型定义更新
+### 1.2 類型定義更新
 更新文件：`src/store/hooks/settings/types.ts`
 ```typescript
 export interface OpenAITestResult {
@@ -62,22 +62,22 @@ export interface OpenAITestStatus {
 }
 ```
 
-## 2. API测试功能实现详细方案
+## 2. API 測試功能實現詳細方案
 
-### 2.1 组件状态管理
-在 Settings 组件中添加：
+### 2.1 組件狀態管理
+在 Settings 組件中添加：
 ```typescript
-// 测试状态
+// 測試狀態
 const [testStatus, setTestStatus] = useState<OpenAITestStatus>({
   testing: false
 });
 
-// OpenAI服务实例
+// OpenAI 服務實例
 const [openAIService, setOpenAIService] = useState<OpenAIService | null>(null);
 ```
 
-### 2.2 测试流程实现
-1. **初始化阶段**
+### 2.2 測試流程實現
+1. **初始化階段**
    ```typescript
    useEffect(() => {
      if (settings.openaiApiKey) {
@@ -86,12 +86,12 @@ const [openAIService, setOpenAIService] = useState<OpenAIService | null>(null);
    }, [settings.openaiApiKey]);
    ```
 
-2. **测试函数实现**
+2. **測試函數實現**
    ```typescript
    const handleTestConnection = async () => {
      const apiKey = form.getFieldValue('openaiApiKey');
      if (!apiKey) {
-       message.warning('请先输入API密钥');
+       message.warning('請先輸入 API 密鑰');
        return;
      }
 
@@ -106,30 +106,30 @@ const [openAIService, setOpenAIService] = useState<OpenAIService | null>(null);
        });
 
        if (result.success) {
-         message.success('API连接测试成功！');
+         message.success('API 連接測試成功！');
        } else {
-         message.error(`API连接测试失败: ${result.error}`);
+         message.error(`API 連接測試失敗: ${result.error}`);
        }
      } catch (error) {
        setTestStatus({
          testing: false,
          result: {
            success: false,
-           error: '测试过程发生错误'
+           error: '測試過程發生錯誤'
          }
        });
-       message.error('测试过程发生错误');
+       message.error('測試過程發生錯誤');
      }
    };
    ```
 
-### 2.3 UI交互实现
-1. **输入框组合**
+### 2.3 UI 交互實現
+1. **輸入框組合**
    ```typescript
    <Form.Item
-     label="OpenAI API 密钥"
+     label="OpenAI API 密鑰"
      name="openaiApiKey"
-     extra="可选项：用于AI分析功能"
+     extra="可選項：用於 AI 分析功能"
    >
      <Input.Group compact>
        <Form.Item
@@ -138,7 +138,7 @@ const [openAIService, setOpenAIService] = useState<OpenAIService | null>(null);
        >
          <Input
            style={{ width: 'calc(100% - 100px)' }}
-           placeholder="请输入API密钥"
+           placeholder="請輸入 API 密鑰"
            type="password"
          />
        </Form.Item>
@@ -148,13 +148,13 @@ const [openAIService, setOpenAIService] = useState<OpenAIService | null>(null);
          loading={testStatus.testing}
          style={{ width: '100px' }}
        >
-         测试连接
+         測試連接
        </Button>
      </Input.Group>
    </Form.Item>
    ```
 
-2. **测试状态展示**
+2. **測試狀態展示**
    ```typescript
    {testStatus.result && (
      <Form.Item>
@@ -162,8 +162,8 @@ const [openAIService, setOpenAIService] = useState<OpenAIService | null>(null);
          type={testStatus.result.success ? 'success' : 'error'}
          message={
            testStatus.result.success
-             ? 'API连接正常'
-             : `连接失败: ${testStatus.result.error}`
+             ? 'API 連接正常'
+             : `連接失敗: ${testStatus.result.error}`
          }
          showIcon
        />
@@ -171,50 +171,50 @@ const [openAIService, setOpenAIService] = useState<OpenAIService | null>(null);
    )}
    ```
 
-## 3. 错误处理和优化
+## 3. 錯誤處理和優化
 
-### 3.1 错误处理策略
-1. **API密钥验证**
-   - 空值检查
-   - 基本格式验证（以sk-开头）
-   - 长度检查
+### 3.1 錯誤處理策略
+1. **API 密鑰驗證**
+   - 空值檢查
+   - 基本格式驗證（以 sk- 開頭）
+   - 長度檢查
 
-2. **网络错误处理**
-   - 超时处理（设置5秒超时）
-   - 断网状态处理
-   - 请求失败重试（最多3次）
+2. **網絡錯誤處理**
+   - 超時處理（設置 5 秒超時）
+   - 斷網狀態處理
+   - 請求失敗重試（最多 3 次）
 
-### 3.2 性能优化
-1. **防抖处理**
-   - 避免频繁测试请求
-   - 实现300ms延迟的防抖
+### 3.2 性能優化
+1. **防抖處理**
+   - 避免頻繁測試請求
+   - 實現 300ms 延遲的防抖
 
-2. **缓存处理**
-   - 缓存成功的测试结果
-   - 仅在API密钥变化时重新测试
+2. **緩存處理**
+   - 緩存成功的測試結果
+   - 僅在 API 密鑰變化時重新測試
 
-## 4. 安全性考虑
+## 4. 安全性考慮
 
-### 4.1 API密钥保护
-1. 使用密码输入框隐藏API密钥
-2. 不在前端日志中打印API密钥
-3. 本地存储加密
+### 4.1 API 密鑰保護
+1. 使用密碼輸入框隱藏 API 密鑰
+2. 不在前端日誌中打印 API 密鑰
+3. 本地存儲加密
 
-### 4.2 请求安全
-1. 使用HTTPS确保传输安全
-2. 实现请求频率限制
-3. 清理敏感错误信息
+### 4.2 請求安全
+1. 使用 HTTPS 確保傳輸安全
+2. 實現請求頻率限制
+3. 清理敏感錯誤信息
 
-## 5. 测试用例
+## 5. 測試計劃
 
-### 5.1 功能测试
-1. 正确的API密钥测试
-2. 错误的API密钥测试
-3. 空API密钥测试
-4. 网络异常测试
+### 5.1 功能測試
+1. 正確的 API 密鑰測試
+2. 錯誤的 API 密鑰測試
+3. 空 API 密鑰測試
+4. 網絡異常測試
 
-### 5.2 UI测试
-1. 按钮状态变化
-2. 加载状态显示
-3. 错误提示显示
-4. 成功提示显示
+### 5.2 UI 測試
+1. 按鈕狀態變化
+2. 加載狀態顯示
+3. 錯誤提示顯示
+4. 成功提示顯示

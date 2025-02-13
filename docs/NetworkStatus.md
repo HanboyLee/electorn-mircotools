@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-實現一個簡單的 Google 可訪問性監控功能，通過狀態指示器的方式在側邊欄菜單下方展示當前連接狀態。
+實現一個簡單且直觀的 Google 可訪問性監控功能，並在側邊欄下方展示實時連接狀態。
 
 ## 一、文件結構規劃
 
@@ -26,7 +26,6 @@ src/
 ## 二、界面設計
 
 1. **狀態指示器設計**
-
    - 圓形指示燈設計
    - 三種狀態顏色：
      - 綠色：Google 可以正常訪問
@@ -36,7 +35,6 @@ src/
    - 懸停顯示具體響應時間
 
 2. **布局位置**
-
    - 位於側邊欄菜單列表下方
    - 固定在側邊欄底部
    - 寬度與側邊欄一致
@@ -82,7 +80,6 @@ class NetworkService {
   }
 
   private broadcastStatus(status: any) {
-    // 發送到渲染進程
     BrowserWindow.getAllWindows().forEach(window => {
       window.webContents.send('network-status-update', status);
     });
@@ -90,12 +87,11 @@ class NetworkService {
 }
 ```
 
-### 狀態存儲
+### 狀態管理
 
 ```typescript
-// index.ts
+// hooks/network/index.ts
 import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
 
 interface NetworkStatus {
   isConnected: boolean;
@@ -116,7 +112,6 @@ const useNetworkStatus = () => {
     };
 
     window.api.on('network-status-update', handleStatusUpdate);
-
     return () => {
       window.api.off('network-status-update', handleStatusUpdate);
     };
@@ -128,95 +123,21 @@ const useNetworkStatus = () => {
 export default useNetworkStatus;
 ```
 
-### 樣式設置
-
-```typescript
-// styles.ts
-import styled from 'styled-components';
-
-export const StatusContainer = styled.div`
-  position: relative;
-  width: 100%;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  border-top: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.sidebar};
-`;
-
-export const StatusDot = styled.div<{ status: 'connected' | 'disconnected' | 'checking' }>`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 8px;
-  background-color: ${({ status, theme }) => {
-    switch (status) {
-      case 'connected':
-        return theme.colors.success;
-      case 'disconnected':
-        return theme.colors.error;
-      case 'checking':
-        return theme.colors.warning;
-      default:
-        return theme.colors.disabled;
-    }
-  }};
-`;
-
-export const StatusText = styled.span`
-  font-size: 12px;
-  color: ${({ theme }) => theme.colors.text};
-`;
-
-export const Tooltip = styled.div`
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 4px 8px;
-  background: ${({ theme }) => theme.colors.tooltip};
-  border-radius: 4px;
-  font-size: 12px;
-  color: ${({ theme }) => theme.colors.tooltipText};
-  white-space: nowrap;
-  opacity: 0;
-  transition: opacity 0.2s;
-
-  ${StatusContainer}:hover & {
-    opacity: 1;
-  }
-`;
-```
-
-### 狀態指示器組件
+### 組件設計
 
 ```typescript
 // StatusIndicator.tsx
 import React from 'react';
-import { StatusContainer, StatusDot, StatusText, Tooltip } from './styles';
+import { StatusContainer, StatusDot, Tooltip } from './styles';
 import useNetworkStatus from '../store/hooks/network';
 
-interface Props {
-}
-
-const StatusIndicator: React.FC<Props> = () => {
+const StatusIndicator: React.FC = () => {
   const status = useNetworkStatus();
-
-  const getStatusType = () => {
-    if (status.checking) return 'checking';
-    return status.isConnected ? 'connected' : 'disconnected';
-  };
-
-  const getStatusText = () => {
-    if (status.checking) return '檢測中...';
-    return status.isConnected ? '已連接' : '未連接';
-  };
 
   return (
     <StatusContainer>
-      <StatusDot status={getStatusType()} />
-      <StatusText>{getStatusText()}</StatusText>
+      <StatusDot status={status.isConnected ? 'connected' : 'disconnected'} />
+      <span>{status.isConnected ? '已連接' : '未連接'}</span>
       {status.responseTime && (
         <Tooltip>
           響應時間: {status.responseTime}ms
@@ -231,51 +152,65 @@ const StatusIndicator: React.FC<Props> = () => {
 export default StatusIndicator;
 ```
 
-### 主組件整合
+## 四、錯誤處理機制
 
-```typescript
-// index.tsx
-import React from 'react';
-import StatusIndicator from './StatusIndicator';
+1. **網絡檢測錯誤**
+   - DNS 解析失敗處理
+   - 超時處理（設置 5 秒超時）
+   - 錯誤重試機制（最多 3 次）
 
-const NetworkStatus: React.FC = () => {
-  return (
-    <div>
-      <StatusIndicator />
-    </div>
-  );
-};
+2. **狀態更新錯誤**
+   - IPC 通信異常處理
+   - 組件卸載時清理監聽器
+   - 狀態更新失敗後的重試機制
 
-export default NetworkStatus;
-```
+## 五、性能優化考慮
 
-## 四、用戶交互
+1. **檢測頻率優化**
+   - 正常狀態：30 秒檢測一次
+   - 異常狀態：10 秒檢測一次
+   - 可配置的檢測間隔
 
-1. **基本顯示**
+2. **資源佔用優化**
+   - 使用輕量級的 DNS 查詢
+   - 避免過度的狀態更新
+   - 及時清理定時器和事件監聽器
 
-   - 狀態指示燈顏色直觀反映連接狀態
-   - 顯示"已連接"或"未連接"的文字提示
+3. **渲染性能優化**
+   - 使用 React.memo 優化組件
+   - 狀態變化防抖處理
+   - 最小化不必要的重渲染
 
-2. **懸停效果**
+## 六、測試計劃
 
-   - 顯示最後檢測時間
-   - 顯示具體響應時間（如果有）
-   - 提供手動檢測的提示
+1. **單元測試**
+   - 網絡服務測試
+   - Hook 邏輯測試
+   - 組件渲染測試
 
-3. **點擊操作**
-   - 支持點擊手動觸發檢測
-   - 檢測過程中顯示加載動畫
+2. **集成測試**
+   - IPC 通信測試
+   - 狀態管理流程測試
+   - 錯誤處理測試
 
-## 五、注意事項
+3. **端到端測試**
+   - 實際網絡環境測試
+   - 各種狀態切換測試
+   - 長期穩定性測試
 
-1. 主進程和渲染進程職責分離
-2. 使用 IPC 進行安全的進程間通信
-3. 最小化資源佔用
-4. 避免頻繁的狀態更新
+## 七、後續優化方向
 
-## 六、預期效果
+1. **功能擴展**
+   - 添加更多檢測目標
+   - 支持自定義檢測間隔
+   - 添加網絡統計信息
 
-- 用戶可以一眼看出 Google 的可訪問狀態
-- 交互簡單直觀
-- 不佔用過多界面空間
-- 運行穩定可靠
+2. **用戶體驗改進**
+   - 添加手動刷新按鈕
+   - 提供更詳細的狀態信息
+   - 支持系統通知提醒
+
+3. **性能提升**
+   - 優化檢測算法
+   - 改進狀態更新機制
+   - 減少資源佔用

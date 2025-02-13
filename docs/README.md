@@ -11,73 +11,70 @@
 
 ### 1. 創建新功能的完整流程
 
-以創建文件處理功能為例，完整流程如下：
+以創建網絡狀態監控功能為例，完整流程如下：
 
 #### 1.1 定義 API 通道
 ```typescript
 // src/constants/channels.ts
-export const FileChannels = {
-  READ: 'file:read',
-  WRITE: 'file:write',
-  EXISTS: 'file:exists'
+export const NetworkChannels = {
+  STATUS_UPDATE: 'network:status-update',
+  CHECK_CONNECTION: 'network:check-connection'
 } as const;
 ```
 
 #### 1.2 定義類型
 ```typescript
 // src/types/services.ts
-export type APIChannel = typeof FileChannels[keyof typeof FileChannels];
+export interface NetworkStatus {
+  isConnected: boolean;
+  lastCheck: number;
+  responseTime: number | null;
+}
+
+export type APIChannel = typeof NetworkChannels[keyof typeof NetworkChannels];
 
 // API 方法類型定義
 export type APIMethodMap = {
-  [FileChannels.READ]: (filePath: string) => Promise<string>;
-  [FileChannels.WRITE]: (filePath: string, content: string) => Promise<void>;
-  [FileChannels.EXISTS]: (filePath: string) => Promise<boolean>;
+  [NetworkChannels.STATUS_UPDATE]: (callback: (status: NetworkStatus) => void) => void;
+  [NetworkChannels.CHECK_CONNECTION]: () => Promise<NetworkStatus>;
 };
-
-// 導出給前端使用的 API 類型
-export type ElectronAPI = APIMethodMap;
 ```
 
 #### 1.3 實現後端服務
 ```typescript
-// src/services/fileService.ts
-import { promises as fs } from 'fs';
+// src/services/networkService.ts
+import { dns } from 'dns';
 import { BaseService } from './baseService';
-import { FileChannels } from '../constants/channels';
+import { NetworkChannels } from '../constants/channels';
+import { NetworkStatus } from '../types/services';
 
-export class FileService extends BaseService {
+export class NetworkService extends BaseService {
+  private checkInterval: NodeJS.Timer | null = null;
+
   protected getHandlers() {
     return [
       {
-        channel: FileChannels.READ,
-        handler: this.readFile.bind(this)
-      },
-      {
-        channel: FileChannels.WRITE,
-        handler: this.writeFile.bind(this)
-      },
-      {
-        channel: FileChannels.EXISTS,
-        handler: this.fileExists.bind(this)
+        channel: NetworkChannels.CHECK_CONNECTION,
+        handler: this.checkConnection.bind(this)
       }
     ];
   }
 
-  private async readFile(filePath: string): Promise<string> {
-    return await fs.readFile(filePath, 'utf8');
-  }
-
-  private async writeFile(filePath: string, content: string): Promise<void> {
-    await fs.writeFile(filePath, content, 'utf8');
-  }
-
-  private async fileExists(filePath: string): Promise<boolean> {
+  async checkConnection(): Promise<NetworkStatus> {
+    const startTime = Date.now();
     try {
-      await fs.access(filePath);
-      return true;
-    } catch {
-      return false;
+      await dns.promises.lookup('www.google.com');
+      return {
+        isConnected: true,
+        lastCheck: Date.now(),
+        responseTime: Date.now() - startTime
+      };
+    } catch (error) {
+      return {
+        isConnected: false,
+        lastCheck: Date.now(),
+        responseTime: null
+      };
     }
   }
 }
@@ -85,92 +82,55 @@ export class FileService extends BaseService {
 
 #### 1.4 在前端定義 Hooks
 ```typescript
-// src/hooks/useFileService.ts
-import { useState } from 'react';
-import { FileChannels } from '../constants/channels';
+// src/hooks/useNetwork.ts
+import { useState, useEffect } from 'react';
+import { NetworkStatus } from '../types/services';
+import { NetworkChannels } from '../constants/channels';
 
-export const useFileService = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+export const useNetwork = () => {
+  const [status, setStatus] = useState<NetworkStatus>({
+    isConnected: false,
+    lastCheck: 0,
+    responseTime: null
+  });
 
-  const readFile = async (filePath: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const content = await window.electronAPI[FileChannels.READ](filePath);
-      return content;
-    } catch (err) {
-      setError(err as Error);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const handleStatusUpdate = (newStatus: NetworkStatus) => {
+      setStatus(newStatus);
+    };
 
-  const writeFile = async (filePath: string, content: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      await window.electronAPI[FileChannels.WRITE](filePath, content);
-    } catch (err) {
-      setError(err as Error);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+    window.api[NetworkChannels.STATUS_UPDATE](handleStatusUpdate);
+    
+    // 初始檢測
+    window.api[NetworkChannels.CHECK_CONNECTION]()
+      .then(setStatus)
+      .catch(console.error);
 
-  return {
-    readFile,
-    writeFile,
-    loading,
-    error
-  };
+    return () => {
+      // 清理監聽器
+      window.api[NetworkChannels.STATUS_UPDATE](null);
+    };
+  }, []);
+
+  return status;
 };
 ```
 
-#### 1.5 在前端組件中使用
+#### 1.5 實現前端組件
 ```typescript
-// src/components/FileEditor.tsx
-import React, { useState } from 'react';
-import { useFileService } from '../hooks/useFileService';
+// src/components/NetworkStatus/index.tsx
+import React from 'react';
+import { useNetwork } from '../../hooks/useNetwork';
+import { StatusIndicator, Container } from './styles';
 
-export const FileEditor: React.FC = () => {
-  const [content, setContent] = useState('');
-  const { readFile, writeFile, loading, error } = useFileService();
-
-  const handleFileRead = async () => {
-    try {
-      const filePath = '/path/to/file.txt';
-      const fileContent = await readFile(filePath);
-      setContent(fileContent);
-    } catch (err) {
-      console.error('Failed to read file:', err);
-    }
-  };
-
-  const handleFileSave = async () => {
-    try {
-      const filePath = '/path/to/file.txt';
-      await writeFile(filePath, content);
-      console.log('File saved successfully');
-    } catch (err) {
-      console.error('Failed to save file:', err);
-    }
-  };
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+export const NetworkStatus: React.FC = () => {
+  const status = useNetwork();
 
   return (
-    <div>
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-      />
-      <button onClick={handleFileRead}>讀取文件</button>
-      <button onClick={handleFileSave}>保存文件</button>
-    </div>
+    <Container>
+      <StatusIndicator connected={status.isConnected} />
+      <span>{status.isConnected ? '網絡正常' : '網絡異常'}</span>
+    </Container>
   );
 };
 ```
@@ -187,21 +147,15 @@ export const FileEditor: React.FC = () => {
 // src/hooks/useErrorHandler.ts
 export const useErrorHandler = () => {
   const handleError = (error: Error) => {
-    if (error instanceof ServiceError) {
-      // 處理特定的服務錯誤
-      switch (error.code) {
-        case 'FILE_NOT_FOUND':
-          // 處理文件不存在錯誤
-          break;
-        case 'PERMISSION_DENIED':
-          // 處理權限錯誤
-          break;
-        default:
-          // 處理其他錯誤
-      }
+    if (error instanceof NetworkError) {
+      // 處理網絡錯誤
+      console.error('Network error:', error);
+    } else if (error instanceof ValidationError) {
+      // 處理驗證錯誤
+      console.error('Validation error:', error);
     } else {
-      // 處理一般錯誤
-      console.error('Unexpected error:', error);
+      // 處理其他錯誤
+      console.error('Unknown error:', error);
     }
   };
 
@@ -211,118 +165,106 @@ export const useErrorHandler = () => {
 
 #### 2.3 狀態管理
 ```typescript
-// src/store/fileSlice.ts
+// src/store/networkSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { NetworkStatus } from '../types/services';
 
-interface FileState {
-  content: string;
-  path: string | null;
-  isDirty: boolean;
-}
-
-const fileSlice = createSlice({
-  name: 'file',
+const networkSlice = createSlice({
+  name: 'network',
   initialState: {
-    content: '',
-    path: null,
-    isDirty: false
-  } as FileState,
+    status: {
+      isConnected: false,
+      lastCheck: 0,
+      responseTime: null
+    } as NetworkStatus
+  },
   reducers: {
-    setContent: (state, action: PayloadAction<string>) => {
-      state.content = action.payload;
-      state.isDirty = true;
-    },
-    setPath: (state, action: PayloadAction<string>) => {
-      state.path = action.payload;
-    },
-    clearDirty: (state) => {
-      state.isDirty = false;
+    updateStatus: (state, action: PayloadAction<NetworkStatus>) => {
+      state.status = action.payload;
     }
   }
 });
 ```
 
-### 3. 開發流程檢查清單
-
-#### 3.1 後端開發
-- [ ] 在 channels.ts 定義新的通道常量
-- [ ] 在 types/services.ts 定義 API 類型
-- [ ] 創建或更新服務類
-- [ ] 實現錯誤處理
-- [ ] 添加日誌記錄
-- [ ] 編寫單元測試
-
-#### 3.2 前端開發
-- [ ] 創建 Custom Hook 封裝 API 調用
-- [ ] 實現錯誤處理
-- [ ] 添加 loading 狀態處理
-- [ ] 在組件中使用 Hook
-- [ ] 添加必要的 UI 反饋
-- [ ] 編寫單元測試
-
 ## 開發規範
 
 ### 命名規範
 
-1. **文件命名**：
-   - 使用 camelCase：`fileService.ts`
-   - 類型定義文件：`types.ts`
-   - 常量文件：`constants.ts`
+1. **文件命名**
+   - 組件文件：PascalCase
+   - 工具文件：camelCase
+   - 類型文件：PascalCase
+   - 樣式文件：camelCase
 
-2. **類命名**：
-   - 使用 PascalCase：`class FileService`
-   - 服務類添加 Service 後綴：`MetadataService`
+2. **變量命名**
+   - 普通變量：camelCase
+   - 常量：UPPER_CASE
+   - 類型：PascalCase
+   - 接口：以 I 開頭，PascalCase
 
-3. **接口命名**：
-   - 使用 I 前綴：`interface IFileAPI`
-   - 類型使用 T 前綴：`type TServiceHandler`
-
-4. **常量命名**：
-   - 使用大寫蛇形：`FILE_READ`
-   - 分組使用對象：`FileChannels.READ`
+3. **函數命名**
+   - 普通函數：camelCase
+   - 組件函數：PascalCase
+   - 事件處理函數：handleXxx
 
 ### 代碼風格
 
-1. **縮進**：
-   - 使用 2 空格縮進
-   - 不使用 Tab
+1. **TypeScript 相關**
+   - 優先使用 interface 而不是 type
+   - 明確定義返回類型
+   - 使用 enum 而不是字符串常量
+   - 合理使用泛型
 
-2. **分號**：
-   - 語句結尾必須使用分號
+2. **React 相關**
+   - 使用函數組件和 Hooks
+   - Props 類型明確定義
+   - 合理使用 memo
+   - 遵循 Hooks 規則
 
-3. **引號**：
-   - 優先使用單引號
-   - JSX 中使用雙引號
-
-4. **註釋**：
-   - 使用 JSDoc 風格
-   - 每個服務類和重要方法都要有註釋
+3. **樣式相關**
+   - 使用 styled-components
+   - 主題統一管理
+   - 響應式設計
+   - 模塊化 CSS
 
 ## 最佳實踐
 
-### 1. API 調用
-- 使用 Custom Hooks 封裝 API 邏輯
-- 統一處理 loading 和 error 狀態
-- 使用 TypeScript 類型檢查
-- 實現適當的錯誤處理
+### 1. 性能優化
+- 使用 useMemo 和 useCallback
+- 實現虛擬列表
+- 圖片懶加載
+- 代碼分割
 
-### 2. 狀態管理
-- 使用 Redux/Zustand 等狀態管理工具
-- 將 API 狀態與 UI 狀態分開管理
-- 實現數據緩存機制
+### 2. 錯誤處理
+- 全局錯誤邊界
+- 異步錯誤處理
+- 友好的錯誤提示
+- 錯誤日誌記錄
 
-### 3. 用戶體驗
-- 添加適當的 loading 指示器
-- 提供清晰的錯誤提示
-- 實現操作的取消機制
-- 添加適當的確認對話框
+### 3. 測試
+- 單元測試覆蓋
+- 組件測試
+- E2E 測試
+- 性能測試
 
-### 4. 性能優化
-- 實現數據緩存
-- 避免不必要的 API 調用
-- 使用防抖和節流
-- 實現分頁加載
+### 4. 安全性
+- 輸入驗證
+- XSS 防護
+- 參數校驗
+- 安全的 IPC 通信
 
 ## 示例代碼庫
 
-[提供一個完整的示例代碼庫鏈接或位置，包含所有最佳實踐的實現]
+項目目錄結構：
+```
+src/
+├── main/           # 主進程代碼
+├── renderer/       # 渲染進程代碼
+├── common/         # 共享代碼
+├── components/     # React 組件
+├── hooks/          # Custom Hooks
+├── services/       # 服務層
+├── store/          # 狀態管理
+├── types/          # TypeScript 類型
+├── utils/          # 工具函數
+└── styles/         # 全局樣式

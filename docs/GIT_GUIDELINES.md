@@ -10,19 +10,19 @@
 ## 分支管理
 
 ### 主要分支
-- `main`: 主分支，用於生產環境
-- `develop`: 開發分支，用於開發環境
-- `release/*`: 發布分支，用於準備新版本發布
-- `feature/*`: 功能分支，用於開發新功能
-- `hotfix/*`: 熱修復分支，用於修復生產環境的緊急問題
+- `main`: 生產環境主分支  
+- `develop`: 開發分支  
+- `release/*`: 用於發布前準備  
+- `feature/*`: 用於新功能開發  
+- `hotfix/*`: 用於緊急修復生產環境問題
 
 ### 分支命名規範
-- 功能分支：`feature/功能名稱-簡短描述`
-  - 例：`feature/file-upload`
-- 修復分支：`hotfix/問題簡述`
-  - 例：`hotfix/file-permission-error`
-- 發布分支：`release/版本號`
-  - 例：`release/v1.2.0`
+- 功能分支：`feature/功能名稱-簡短描述`  
+  例：`feature/network-monitor`  
+- 修復分支：`hotfix/問題簡述`  
+  例：`hotfix/api-key-validation`  
+- 發布分支：`release/版本號`  
+  例：`release/v1.0.1`
 
 ## 提交信息規範
 
@@ -49,7 +49,8 @@
 - `core`: 核心功能
 - `ui`: 界面相關
 - `api`: API 相關
-- `auth`: 認證相關
+- `network`: 網絡相關
+- `settings`: 設置相關
 - `file`: 文件處理
 - `deps`: 依賴更新
 
@@ -61,13 +62,13 @@
 
 ### 示例
 ```
-feat(file): add file upload functionality
+feat(network): add real-time google connectivity check
 
-- Implement file selection dialog
-- Add progress bar for upload
-- Handle upload errors
+- Add network service to check google connectivity every 30 seconds
+- Create IPC channels for network status transmission
+- Implement status indicator in sidebar
 
-Closes #123
+Closes #456
 ```
 
 ## 工作流程
@@ -159,23 +160,6 @@ git push origin develop
    git checkout develop
    git merge --no-ff release/v1.2.0
    ```
-
-### 更新日誌格式
-```markdown
-## [1.2.0] - 2025-01-12
-
-### Added
-- 新增文件上傳功能
-- 添加進度條顯示
-
-### Changed
-- 優化文件處理邏輯
-- 更新依賴庫版本
-
-### Fixed
-- 修復文件權限問題
-- 解決內存洩漏問題
-```
 
 ## 最佳實踐
 
