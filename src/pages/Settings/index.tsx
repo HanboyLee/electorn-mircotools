@@ -3,6 +3,7 @@ import { Card, Typography, Space, Form, Button, message, Collapse, theme } from 
 import { SettingOutlined, SaveOutlined } from '@ant-design/icons';
 import { useSettingsStore } from '@/hooks/SettingsStore';
 import type { Settings } from '@/hooks/SettingsStore';
+import { initialSettings } from '@/hooks/SettingsStore/index';
 import { useOpenAITest } from './hooks/useOpenAITest';
 import { useOpenRouterTest } from './hooks/useOpenRouterTest';
 import { isEqual } from 'lodash';

@@ -31,7 +31,7 @@ function convertToWebP(file: File, quality = 0.7): Promise<string> {
   });
 }
 
-export async function analyzeImage(file: File, apiKey: string): Promise<AnalysisResult> {
+export async function analyzeImage(file: File, apiKey: string, prompt?: string): Promise<AnalysisResult> {
   try {
     // 使用 FileReader 讀取文件
 
@@ -46,6 +46,7 @@ export async function analyzeImage(file: File, apiKey: string): Promise<Analysis
     });
 
     console.log('正在發送 OpenAI API 請求...');
+    console.log('使用的提示詞:', prompt || 'Analyze this image and provide a title, description, and keywords in JSON format.');
     const response = await client.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -54,7 +55,7 @@ export async function analyzeImage(file: File, apiKey: string): Promise<Analysis
           content: [
             {
               type: 'text',
-              text: 'Analyze this image and provide a title, description, and keywords in JSON format.',
+              text: prompt || 'Analyze this image and provide a title, description, and keywords in JSON format.',
             },
             {
               type: 'image_url',

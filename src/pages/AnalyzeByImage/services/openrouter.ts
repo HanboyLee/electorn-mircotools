@@ -31,12 +31,13 @@ function convertToWebP(file: File, quality = 0.7): Promise<string> {
   });
 }
 
-export async function analyzeImageWithOpenRouter(file: File, apiKey: string, modelId: string): Promise<AnalysisResult> {
+export async function analyzeImageWithOpenRouter(file: File, apiKey: string, modelId: string, prompt?: string): Promise<AnalysisResult> {
   try {
     // 轉換圖片為 WebP 格式
     const dataUrl = await convertToWebP(file, 0.7);
 
     console.log('正在發送 OpenRouter API 請求...');
+    console.log('使用的提示詞:', prompt || 'Analyze this image and provide a title, description, and keywords in JSON format.');
     
     const response = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
@@ -48,7 +49,7 @@ export async function analyzeImageWithOpenRouter(file: File, apiKey: string, mod
             content: [
               {
                 type: 'text',
-                text: 'Analyze this image and provide a title, description, and keywords in JSON format.',
+                text: prompt || 'Analyze this image and provide a title, description, and keywords in JSON format.',
               },
               {
                 type: 'image_url',

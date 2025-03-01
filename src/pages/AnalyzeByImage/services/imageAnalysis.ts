@@ -10,6 +10,10 @@ export async function analyzeImageWithProvider(
   file: File, 
   settings: Settings
 ): Promise<AnalysisResult> {
+  console.log('analyzeImageWithProvider - settings:', { 
+    apiProvider: settings.apiProvider,
+    analysisPrompt: settings.analysisPrompt
+  });
   // 檢查是否有設置 API 提供者
   const apiProvider = settings.apiProvider || 'openai';
   
@@ -29,7 +33,8 @@ export async function analyzeImageWithProvider(
     return analyzeImageWithOpenRouter(
       file, 
       settings.openrouterApiKey, 
-      settings.selectedModel
+      settings.selectedModel,
+      settings.analysisPrompt
     );
   } else {
     // 檢查是否有 OpenAI API 密鑰
@@ -38,6 +43,6 @@ export async function analyzeImageWithProvider(
     }
     
     // 使用 OpenAI API
-    return analyzeImage(file, settings.openaiApiKey);
+    return analyzeImage(file, settings.openaiApiKey, settings.analysisPrompt);
   }
 }

@@ -18,6 +18,7 @@ export interface Settings {
   apiProvider?: 'openai' | 'openrouter';
   savedModels?: OpenRouterModelInfo[];
   lastModelUpdateTime?: number; // 上次更新模型列表的時間戳
+  analysisPrompt?: string; // 圖片分析提示詞
 }
 
 export interface SettingsStore {
