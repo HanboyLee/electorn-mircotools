@@ -5,7 +5,12 @@ import { Settings } from './types';
 const initialSettings: Settings = {
   theme: 'light',
   language: 'zh_TW',
-  openaiApiKey: '', // 添加默认值
+  openaiApiKey: '', // OpenAI API 密鑰
+  openrouterApiKey: '', // OpenRouter API 密鑰
+  selectedModel: '', // 選擇的模型
+  apiProvider: 'openai', // 默認使用 OpenAI
+  savedModels: [], // 保存的模型列表
+  lastModelUpdateTime: 0, // 上次更新模型列表的時間戳
 };
 
 export function useSettingsStore() {

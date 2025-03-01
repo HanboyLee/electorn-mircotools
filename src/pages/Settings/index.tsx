@@ -1,25 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Typography, Space, Form, Button, message, Divider } from 'antd';
+import { Card, Typography, Space, Form, Button, message, Collapse, theme } from 'antd';
 import { SettingOutlined, SaveOutlined } from '@ant-design/icons';
 import { useSettingsStore } from '@/hooks/SettingsStore';
 import type { Settings } from '@/hooks/SettingsStore';
 import { useOpenAITest } from './hooks/useOpenAITest';
+import { useOpenRouterTest } from './hooks/useOpenRouterTest';
 import { isEqual } from 'lodash';
 import BasicSettings from './components/BasicSettings';
 import APISettings from './components/APISettings';
 
 const { Title } = Typography;
+const { Panel } = Collapse;
 
 const Settings: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const { settings, updateSettings } = useSettingsStore();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const { status: testStatus, testConnection } = useOpenAITest();
+  const { status: openAITestStatus, testConnection: testOpenAIConnection } = useOpenAITest();
+  const { status: openRouterTestStatus, models, testConnection: testOpenRouterConnection } = useOpenRouterTest();
+  const [selectedApiProvider, setSelectedApiProvider] = useState<'openai' | 'openrouter'>(settings.apiProvider || 'openai');
+  const [selectedModel, setSelectedModel] = useState<string>(settings.selectedModel || '');
 
   // 監聽表單變化
   const handleFormChange = (changedValues: any) => {
     console.log('Form values changed:', changedValues);
+    
+    // 如果 API 提供者改變，更新選擇的提供者
+    if (changedValues.apiProvider) {
+      setSelectedApiProvider(changedValues.apiProvider);
+    }
+    
     checkFormChanges();
   };
 
@@ -35,6 +46,11 @@ const Settings: React.FC = () => {
     console.log('Saving settings:', values);
     setLoading(true);
     try {
+      // 確保更新 selectedModel
+      if (selectedApiProvider === 'openrouter' && selectedModel) {
+        values.selectedModel = selectedModel;
+      }
+      
       await updateSettings(values);
       setHasUnsavedChanges(false);
       message.success('設置已保存');
@@ -54,28 +70,67 @@ const Settings: React.FC = () => {
   // 重置表單
   const handleReset = () => {
     form.setFieldsValue(settings);
+    setSelectedApiProvider(settings.apiProvider || 'openai');
+    setSelectedModel(settings.selectedModel || '');
     setHasUnsavedChanges(false);
   };
 
-  // 測試API連接
-  const handleTestConnection = async () => {
+  // 測試 OpenAI API 連接
+  const handleTestOpenAIConnection = async () => {
     const currentApiKey = form.getFieldValue('openaiApiKey');
     if (!currentApiKey?.trim()) {
-      message.warning('請先輸入API密鑰');
+      message.warning('請先輸入 OpenAI API 密鑰');
       return;
     }
 
-    const result = await testConnection(currentApiKey);
+    const result = await testOpenAIConnection(currentApiKey);
     if (result?.success) {
-      message.success('API連接測試成功！');
+      message.success('OpenAI API 連接測試成功！');
     }
+  };
+
+  // 測試 OpenRouter API 連接
+  const handleTestOpenRouterConnection = async () => {
+    const currentApiKey = form.getFieldValue('openrouterApiKey');
+    if (!currentApiKey?.trim()) {
+      message.warning('請先輸入 OpenRouter API 密鑰');
+      return;
+    }
+
+    const result = await testOpenRouterConnection(currentApiKey);
+    if (result?.success) {
+      message.success('OpenRouter API 連接測試成功！');
+      
+      // 如果有可用模型，自動選擇第一個
+      if (result.models && result.models.length > 0 && !selectedModel) {
+        setSelectedModel(result.models[0].id);
+        form.setFieldsValue({ selectedModel: result.models[0].id });
+      }
+    }
+  };
+
+  // 處理 API 提供者變更
+  const handleApiProviderChange = (provider: 'openai' | 'openrouter') => {
+    setSelectedApiProvider(provider);
+    form.setFieldsValue({ apiProvider: provider });
+  };
+
+  // 處理模型變更
+  const handleModelChange = (modelId: string) => {
+    setSelectedModel(modelId);
+    form.setFieldsValue({ selectedModel: modelId });
   };
 
   // 当settings变化时更新表单
   useEffect(() => {
     console.log('Settings changed, updating form:', settings);
     form.setFieldsValue(settings);
+    setSelectedApiProvider(settings.apiProvider || 'openai');
+    setSelectedModel(settings.selectedModel || '');
   }, [settings, form]);
+
+  // 獲取主題顏色
+  const { token } = theme.useToken();
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -88,10 +143,39 @@ const Settings: React.FC = () => {
         </Space>
 
         <Form form={form} layout="vertical" onFinish={handleSave} onValuesChange={handleFormChange}>
-          <BasicSettings />
-
-          <Divider orientation="left">API 設置</Divider>
-          <APISettings onTestConnection={handleTestConnection} testStatus={testStatus} />
+          <Collapse 
+            defaultActiveKey={['basic', 'api']} 
+            accordion={false} 
+            style={{ marginBottom: 24 }}
+            bordered={false}
+            expandIconPosition="end"
+          >
+            <Panel 
+              header={<Title level={4} style={{ margin: 0 }}>基本設置</Title>} 
+              key="basic"
+              style={{ backgroundColor: token.colorBgContainer }}
+            >
+              <BasicSettings />
+            </Panel>
+            
+            <Panel 
+              header={<Title level={4} style={{ margin: 0 }}>API 設置</Title>} 
+              key="api"
+              style={{ backgroundColor: token.colorBgContainer }}
+            >
+              <APISettings 
+                onTestOpenAI={handleTestOpenAIConnection} 
+                onTestOpenRouter={handleTestOpenRouterConnection}
+                openAITestStatus={openAITestStatus} 
+                openRouterTestStatus={openRouterTestStatus}
+                models={models}
+                selectedApiProvider={selectedApiProvider}
+                onApiProviderChange={handleApiProviderChange}
+                selectedModel={selectedModel}
+                onModelChange={handleModelChange}
+              />
+            </Panel>
+          </Collapse>
 
           <Form.Item>
             <Space>
