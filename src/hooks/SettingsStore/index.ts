@@ -2,10 +2,17 @@ import { useEffect, useState } from 'react';
 import Store from '@/hooks/PersistentStore';
 import { Settings } from './types';
 
-const initialSettings: Settings = {
+export const initialSettings: Settings = {
   theme: 'light',
   language: 'zh_TW',
-  openaiApiKey: '', // 添加默认值
+  openaiApiKey: '', // OpenAI API 密鑰
+  openrouterApiKey: '', // OpenRouter API 密鑰
+  selectedModel: '', // 選擇的模型
+  apiProvider: 'openai', // 默認使用 OpenAI
+  savedModels: [], // 保存的模型列表
+  lastModelUpdateTime: 0, // 上次更新模型列表的時間戳
+  analysisPrompt:
+    'Please carefully analyze the image and generate an output in JSON format using the structure below: { "title": "<Enter the image title>", "description": "<Enter a detailed description of the image content>", "keywords": ["keyword1", "keyword2", ..., "keyword15", ...] } Requirements: 1. The title must accurately summarize the main subject of the image. 2. The description should be detailed and specific, covering all significant aspects of the image. 3. The keywords array must contain at least 15 keywords that are closely related to the image content, ensuring a comprehensive description of all its facets.', // 預設分析提示詞
 };
 
 export function useSettingsStore() {

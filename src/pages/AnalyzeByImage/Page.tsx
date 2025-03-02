@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Button, Card, Space, Typography, Upload, message, Spin, Alert } from 'antd';
+import { Button, Card, Space, Typography, Upload, message, Spin, Alert, Divider } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { AnalysisResults } from './components/AnalysisResults';
-import { analyzeImage } from './services/openai';
+import PromptEditor from './components/PromptEditor';
+import { analyzeImageWithProvider } from './services/imageAnalysis';
 import { exportToCsv } from './utils/csv';
 import { useSettingsStore } from '@/hooks/SettingsStore';
 import { useNavigate } from 'react-router-dom';
@@ -59,18 +60,45 @@ export default function Page() {
       return;
     }
 
-    if (!settings.openaiApiKey.startsWith('sk-')) {
-      message.error('無效的 OpenAI API 密鑰格式，請在設置頁面重新配置');
-      navigate('/settings');
-      return;
+    // 檢查是否有設置 API 提供者
+    const apiProvider = settings.apiProvider || 'openai';
+
+    // 檢查相應的 API 密鑰
+    if (apiProvider === 'openai') {
+      if (!settings.openaiApiKey) {
+        message.error('請先在設置中配置 OpenAI API 密鑰');
+        navigate('/settings');
+        return;
+      }
+
+      if (!settings.openaiApiKey.startsWith('sk-')) {
+        message.error('無效的 OpenAI API 密鑰格式，請在設置頁面重新配置');
+        navigate('/settings');
+        return;
+      }
+    } else if (apiProvider === 'openrouter') {
+      if (!settings.openrouterApiKey) {
+        message.error('請先在設置中配置 OpenRouter API 密鑰');
+        navigate('/settings');
+        return;
+      }
+
+      // 如果是 OpenRouter，還需要檢查是否選擇了模型
+      if (!settings.selectedModel) {
+        message.error('請先在設置中選擇一個 OpenRouter 模型');
+        navigate('/settings');
+        return;
+      }
     }
 
     setState(prev => ({ ...prev, analyzing: true }));
 
+    console.log('当前使用的提示詞:', settings.analysisPrompt);
+    
     for (const file of state.selectedFiles) {
       try {
         console.log(`正在分析 ${file.name}...`);
-        const result = await analyzeImage(file, settings.openaiApiKey);
+        const result = await analyzeImageWithProvider(file, settings);
         setState(prev => ({
           ...prev,
           results: { ...prev.results, [file.name]: result },
@@ -114,7 +142,12 @@ export default function Page() {
   return (
     <Card>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <Title level={4}>CSV 元數據寫入工具</Title>
+        <Title level={4}>LLM 圖片分析</Title>
+
+        {/* 提示詞編輯器 */}
+        <PromptEditor />
+        
+        <Divider style={{ margin: '12px 0' }} />
 
         {!settings.openaiApiKey && (
           <Alert

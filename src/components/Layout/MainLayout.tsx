@@ -1,106 +1,52 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layout, Menu, Button, Avatar, Typography, theme } from 'antd';
+import { Layout, theme } from 'antd';
 import styled from 'styled-components';
-import { logo } from '../../assets/images';
 
-import {
-  HomeOutlined,
-  SettingOutlined,
-  FileTextOutlined,
-  PictureOutlined,
-  StockOutlined,
-} from '@ant-design/icons';
+import CustomTitleBar from './CustomTitleBar';
+import SidebarMenu from './SidebarMenu';
 
-import HeaderContainer from './HeaderContainer';
-import NetworkStatus from '../NetworkStatus';
-
-const { Sider, Content } = Layout;
+const { Content } = Layout;
 
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  const [collapsed, setCollapsed] = useState(false);
-  const navigate = useNavigate();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { token } = theme.useToken();
 
-  const menuItems = [
-    {
-      key: '/',
-      icon: <HomeOutlined />,
-      label: '首頁',
-    },
-    {
-      key: '/csv-validation',
-      icon: <FileTextOutlined />,
-      label: 'CSV 驗證',
-    },
-    {
-      key: '/image-analyze',
-      icon: <PictureOutlined />,
-      label: '圖片分析',
-    },
-    {
-      key: '/settings',
-      icon: <SettingOutlined />,
-      label: '設置',
-    },
-  ];
+  const handleSidebarCollapse = (collapsed: boolean) => {
+    setSidebarCollapsed(collapsed);
+  };
 
   return (
     <StyledLayout>
-      <StyledSider
-        trigger={null}
-        collapsible
-        collapsed={collapsed}
-        style={{
-          background: token.colorBgContainer,
-        }}
-      >
-        <SiderContent>
-          <LogoContainer collapsed={collapsed} style={{ background: token.colorBgElevated }}>
-            <Avatar
-              onClick={() => setCollapsed(!collapsed)}
-              src={logo}
-              size={collapsed ? 32 : 48}
-              style={{
-                display: 'block',
-                margin: '0 auto',
-                cursor: 'pointer',
-              }}
-            />
-          </LogoContainer>
-          <Menu
-            style={{
-              background: token.colorBgContainer,
-            }}
-            theme={token.colorBgContainer === '#141414' ? 'dark' : 'light'}
-            mode="inline"
-            defaultSelectedKeys={['/']}
-            items={menuItems}
-            onClick={({ key }) => navigate(key)}
-          />
-          <NetworkStatus collapsed={collapsed} />
-        </SiderContent>
-      </StyledSider>
-      <StyledMainLayout collapsed={collapsed}>
-        <HeaderContainer
-          style={{ height: collapsed ? 50 : 64, background: token.colorBgElevated }}
-        />
+      <CustomTitleBar 
+        sidebarCollapsed={sidebarCollapsed}
+        onSidebarCollapsedChange={handleSidebarCollapse}
+      />
+      
+      <MainContent>
         <Content
           style={{
-            height: '100%',
-            minHeight: 280,
+            height: 'calc(100vh - 32px)',
             overflowY: 'auto',
             padding: 12,
             background: token.colorBgLayout,
+            marginTop: '32px',
+            marginLeft: sidebarCollapsed ? '80px' : '200px',
+            transition: 'margin-left 0.3s ease',
           }}
         >
           {children}
         </Content>
-      </StyledMainLayout>
+        
+        <SidebarMenu 
+          collapsed={sidebarCollapsed} 
+          onCollapse={handleSidebarCollapse} 
+        />
+      </MainContent>
     </StyledLayout>
   );
 };
@@ -109,36 +55,11 @@ export default MainLayout;
 
 const StyledLayout = styled(Layout)`
   min-height: 100vh;
+  overflow: hidden;
 `;
 
-const StyledSider = styled(Sider)`
+const MainContent = styled.div`
+  position: relative;
+  width: 100%;
   height: 100vh;
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  z-index: 100;
-`;
-
-const SiderContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-
-  .ant-menu {
-    flex: 1;
-    overflow-y: auto;
-    border-inline-end: none !important;
-  }
-`;
-
-const StyledMainLayout = styled(Layout)<{ collapsed: boolean }>`
-  margin-left: ${props => (props.collapsed ? '80px' : '200px')};
-  transition: margin-left 0.2s;
-`;
-
-const LogoContainer = styled.div<{ collapsed: boolean }>`
-  height: ${props => (props.collapsed ? '50px' : '64px')};
-  padding: ${props => (props.collapsed ? '9px 8px' : '8px')};
-  transition: all 0.2s;
 `;

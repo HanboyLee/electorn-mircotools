@@ -178,7 +178,7 @@ const CsvValidator: React.FC = () => {
   return (
     <Card style={{ width: '100%', height: '100%' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <Title level={4}>CSV 元數據寫入工具</Title>
+        <Title level={4}>元數據寫入圖片</Title>
         <CsvRequirements />
 
         <div>

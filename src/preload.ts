@@ -35,6 +35,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Message API
   sendMessage: (message: string) => ipcRenderer.invoke('send-message', message),
+  
+  // 窗口控制 API
+  windowMinimize: () => ipcRenderer.send('window-minimize'),
+  windowMaximize: () => ipcRenderer.send('window-maximize'),
+  windowRestore: () => ipcRenderer.send('window-restore'),
+  windowClose: () => ipcRenderer.send('window-close'),
+  windowToggleMaximize: () => ipcRenderer.send('window-toggle-maximize'),
+  isWindowMaximized: () => ipcRenderer.invoke('is-window-maximized'),
 });
 
 // 暴露事件監聽相關的 API
@@ -44,10 +52,10 @@ contextBridge.exposeInMainWorld('electron', {
     SHUTTERSTOCK_APPLICATION_SEC: process.argv.find(arg => arg.startsWith('--shutterstock-app-sec='))?.split('=')[1] || '',
   },
   on: (channel: string, callback: (...args: any[]) => void) => {
-    ipcRenderer.on(channel, callback);
+    ipcRenderer.on(channel, (_, ...args) => callback(...args));
   },
   removeListener: (channel: string, callback: (...args: any[]) => void) => {
-    ipcRenderer.removeListener(channel, callback);
+    ipcRenderer.removeListener(channel, (_, ...args) => callback(...args) as any);
   },
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
