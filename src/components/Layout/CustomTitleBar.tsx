@@ -94,8 +94,8 @@ const CustomTitleBar: React.FC<CustomTitleBarProps> = ({
             type="text" 
             icon={sidebarCollapsed ? <BarsOutlined /> : <AppstoreOutlined />} 
             onClick={handleToggleSidebar}
-            hoverColor={token.colorPrimary}
-            hoverBg={token.colorBgTextHover}
+            $hoverColor={token.colorPrimary}
+            $hoverBg={token.colorBgTextHover}
           />
         </Tooltip>
       </LogoSection>
@@ -105,22 +105,22 @@ const CustomTitleBar: React.FC<CustomTitleBarProps> = ({
           type="text"
           icon={<MinusOutlined />}
           onClick={handleMinimize}
-          hoverColor={token.colorPrimary}
-          hoverBg={token.colorBgTextHover}
+          $hoverColor={token.colorPrimary}
+          $hoverBg={token.colorBgTextHover}
         />
         <WindowButton
           type="text"
           icon={isMaximized ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
           onClick={handleMaximizeRestore}
-          hoverColor={token.colorPrimary}
-          hoverBg={token.colorBgTextHover}
+          $hoverColor={token.colorPrimary}
+          $hoverBg={token.colorBgTextHover}
         />
         <WindowButton
           type="text"
           icon={<CloseOutlined />}
           onClick={handleClose}
-          hoverColor="white"
-          hoverBg="#ff4d4f"
+          $hoverColor="white"
+          $hoverBg="#ff4d4f"
         />
       </WindowControls>
     </TitleBarContainer>
@@ -161,8 +161,8 @@ const WindowControls = styled.div`
 `;
 
 interface WindowButtonProps {
-  hoverColor: string;
-  hoverBg: string;
+  $hoverColor: string;
+  $hoverBg: string;
 }
 
 const WindowButton = styled(Button)<WindowButtonProps>`
@@ -176,8 +176,8 @@ const WindowButton = styled(Button)<WindowButtonProps>`
   -webkit-app-region: no-drag;
   
   &:hover {
-    color: ${props => props.hoverColor} !important;
-    background-color: ${props => props.hoverBg} !important;
+    color: ${props => props.$hoverColor} !important;
+    background-color: ${props => props.$hoverBg} !important;
   }
 `;
 
@@ -192,7 +192,7 @@ const MenuToggleButton = styled(Button)<WindowButtonProps>`
   -webkit-app-region: no-drag;
   
   &:hover {
-    color: ${props => props.hoverColor} !important;
-    background-color: ${props => props.hoverBg} !important;
+    color: ${props => props.$hoverColor} !important;
+    background-color: ${props => props.$hoverBg} !important;
   }
 `;
