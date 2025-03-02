@@ -1,20 +1,28 @@
 import { createGlobalStyle } from 'styled-components';
-import { createScrollbarStyle, scrollbarThemes } from './scrollbar';
 
 interface GlobalStyleProps {
-  theme: 'light' | 'dark' | 'blue' | any;
+  theme: 'light' | 'dark' | 'blue';
 }
 
 export const GlobalStyle = createGlobalStyle<GlobalStyleProps>`
-  * {
-    ${props => createScrollbarStyle(scrollbarThemes[props.theme] || scrollbarThemes.light)}
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
   }
 
-  /* 特定容器的滚动条样式 */
-  .ant-layout-content,
-  .ant-layout-sider,
-  .ant-modal-content,
-  .ant-drawer-content {
-    ${props => createScrollbarStyle(scrollbarThemes[props.theme] || scrollbarThemes.light)}
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+      monospace;
+  }
+
+  /* 全局樣式 */
+  * {
+    box-sizing: border-box;
   }
 `;

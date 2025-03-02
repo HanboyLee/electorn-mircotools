@@ -143,23 +143,63 @@ const initializeServices = () => {
 
   const services = [
     new FileService(),
-
     new MetadataService(),
-
     new NetworkService(),
-
     // 添加更多服務...
   ];
 
   // 註冊所有服務的處理器
-
   services.forEach(service => {
     console.log('Registering handlers for service:', service.constructor.name);
-
     service.registerHandlers();
   });
 
   console.log('Services initialized successfully');
+};
+
+// 註冊窗口控制事件處理程序
+const registerWindowControlHandlers = (mainWindow: BrowserWindow) => {
+  ipcMain.on('window-minimize', () => {
+    mainWindow.minimize();
+  });
+
+  ipcMain.on('window-maximize', () => {
+    if (!mainWindow.isMaximized()) {
+      mainWindow.maximize();
+    }
+  });
+
+  ipcMain.on('window-restore', () => {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    }
+  });
+  
+  ipcMain.on('window-toggle-maximize', () => {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  });
+
+  ipcMain.on('window-close', () => {
+    mainWindow.close();
+  });
+
+  ipcMain.handle('is-window-maximized', () => {
+    return mainWindow.isMaximized();
+  });
+  
+  // 監聽窗口最大化狀態變化
+  mainWindow.on('maximize', () => {
+    mainWindow.webContents.send('maximize');
+  });
+  
+  // 監聽窗口還原狀態變化
+  mainWindow.on('unmaximize', () => {
+    mainWindow.webContents.send('unmaximize');
+  });
 };
 
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
@@ -178,11 +218,10 @@ const createWindow = async (): Promise<void> => {
 
     const mainWindow = new BrowserWindow({
       width: 1200,
-
       height: 800,
-
       icon: path.join(process.cwd(), 'icon.ico'),
-
+      frame: false, // 無框窗口
+      transparent: false, // 不透明
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: true,
@@ -196,12 +235,14 @@ const createWindow = async (): Promise<void> => {
 
     // and load the index.html of the app.
 
+    // 註冊窗口控制處理程序
+    registerWindowControlHandlers(mainWindow);
+
     if (process.env.NODE_ENV === 'development') {
       console.log('Running in development mode');
 
       mainWindow
         .loadURL(VITE_DEV_SERVER_URL)
-
         .catch(err => {
           console.error('Error creating window:', err);
         });
@@ -209,10 +250,8 @@ const createWindow = async (): Promise<void> => {
       mainWindow.webContents.openDevTools();
     } else {
       // Load the index.html when not in development
-
       mainWindow
         .loadFile(path.join(__dirname, 'renderer', 'index.html'))
-
         .catch(err => {
           console.error('Error loading index.html:', err);
         });

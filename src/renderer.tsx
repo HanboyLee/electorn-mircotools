@@ -39,13 +39,15 @@ import ImageAnalyze from './pages/AnalyzeByImage';
 import { themes } from './themes';
 import { useSettingsStore } from '@/hooks/SettingsStore';
 import { GlobalStyle } from './themes/GlobalStyle';
+import EnhancedScrollbarStyle from './themes/EnhancedScrollbarStyle';
 
 const App: React.FC = () => {
   const { settings } = useSettingsStore();
 
   return (
     <ConfigProvider theme={themes[settings.theme]}>
-      <GlobalStyle theme={{ current: settings.theme }} />
+      <GlobalStyle theme={settings.theme} />
+      <EnhancedScrollbarStyle />
       <Router>
         <MainLayout>
           <Routes>
