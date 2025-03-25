@@ -8,8 +8,8 @@ import { FileGroup, FileInfo, ZipHistory, ZipResult } from '../types/zip';
 import Store from 'electron-store';
 import { v4 as uuidv4 } from 'uuid';
 
-// 使用 CommonJS 導入方式
-const archiver = require('archiver');
+// 使用 ES6 導入方式
+import * as archiver from 'archiver';
 
 // 定義 Store 的類型
 interface ZipHistoryStore {

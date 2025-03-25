@@ -17,7 +17,8 @@ export default defineConfig({
         'fs',
         'path',
         'os',
-        'child_process'
+        'child_process',
+        'archiver'
       ],
       output: {
         format: 'cjs',
