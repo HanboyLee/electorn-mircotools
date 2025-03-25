@@ -1,0 +1,42 @@
+sequenceDiagram
+    participant 用戶
+    participant 文件打包頁面
+    participant IPC通道
+    participant ZipService
+    participant 文件系統
+
+    用戶->>文件打包頁面: 點擊「選擇文件夾」
+    文件打包頁面->>IPC通道: 調用 file:select-directory
+    IPC通道->>ZipService: 打開文件夾選擇對話框
+    ZipService-->>IPC通道: 返回選定的文件夾路徑
+    IPC通道-->>文件打包頁面: 更新 UI 顯示路徑
+    
+    用戶->>文件打包頁面: 點擊「掃描文件夾」
+    文件打包頁面->>IPC通道: 調用 zip:scan-directory
+    IPC通道->>ZipService: 掃描目錄
+    ZipService->>文件系統: 讀取文件列表
+    文件系統-->>ZipService: 返回文件列表
+    ZipService->>ZipService: 分析並分組同名文件
+    ZipService-->>IPC通道: 返回文件組數據
+    IPC通道-->>文件打包頁面: 更新 UI 顯示文件組
+    
+    用戶->>文件打包頁面: 點擊「預覽」按鈕
+    文件打包頁面->>文件打包頁面: 顯示文件組詳情
+    
+    用戶->>文件打包頁面: 點擊「打包」按鈕
+    文件打包頁面->>IPC通道: 調用 zip:create
+    IPC通道->>ZipService: 創建 ZIP 壓縮包
+    ZipService->>文件系統: 寫入 ZIP 文件
+    文件系統-->>ZipService: 文件寫入進度
+    ZipService-->>IPC通道: 更新進度信息
+    IPC通道-->>文件打包頁面: 更新 UI 顯示進度
+    文件系統-->>ZipService: 完成 ZIP 文件創建
+    ZipService->>ZipService: 記錄到歷史
+    ZipService-->>IPC通道: 返回完成結果
+    IPC通道-->>文件打包頁面: 更新 UI 顯示結果
+    
+    用戶->>文件打包頁面: 點擊「打包歷史」菜單
+    文件打包頁面->>IPC通道: 調用 zip:get-history
+    IPC通道->>ZipService: 獲取歷史記錄
+    ZipService-->>IPC通道: 返回歷史數據
+    IPC通道-->>文件打包頁面: 更新 UI 顯示歷史

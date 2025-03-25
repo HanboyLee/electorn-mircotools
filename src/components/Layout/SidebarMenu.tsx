@@ -8,6 +8,8 @@ import {
   PictureOutlined,
   SettingOutlined,
   QuestionCircleOutlined,
+  FileZipOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons';
 
 interface SidebarMenuProps {
@@ -37,6 +39,16 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({ collapsed, onCollapse }) => {
       label: '圖片分析',
     },
     {
+      key: '/file-packaging',
+      icon: <FileZipOutlined />,
+      label: '文件打包',
+    },
+    {
+      key: '/packaging-history',
+      icon: <HistoryOutlined />,
+      label: '打包歷史',
+    },
+    {
       key: '/settings',
       icon: <SettingOutlined />,
       label: '設置',
@@ -56,9 +68,9 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({ collapsed, onCollapse }) => {
 
   return (
     <SidebarContainer 
-      collapsed={collapsed} 
-      themecolor={token.colorBgContainer}
-      theme={currentTheme}
+      $collapsed={collapsed} 
+      $themecolor={token.colorBgContainer}
+      $theme={currentTheme}
     >
       <StyledMenu
         mode="inline"
@@ -75,9 +87,9 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({ collapsed, onCollapse }) => {
 export default SidebarMenu;
 
 interface SidebarContainerProps {
-  collapsed: boolean;
-  themecolor: string;
-  theme?: 'dark' | 'light';
+  $collapsed: boolean;
+  $themecolor: string;
+  $theme?: 'dark' | 'light';
 }
 
 const SidebarContainer = styled.div<SidebarContainerProps>`
@@ -85,14 +97,14 @@ const SidebarContainer = styled.div<SidebarContainerProps>`
   top: 32px;
   left: 0;
   height: calc(100vh - 32px);
-  width: ${props => (props.collapsed ? '80px' : '200px')};
-  background-color: ${props => props.themecolor};
+  width: ${props => (props.$collapsed ? '80px' : '200px')};
+  background-color: ${props => props.$themecolor};
   transition: all 0.3s ease;
   z-index: 100;
   display: flex;
   flex-direction: column;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-  border-right: 1px solid ${props => props.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)'};
+  border-right: 1px solid ${props => props.$theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)'};
 `;
 
 

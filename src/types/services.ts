@@ -4,11 +4,11 @@ export type ServiceHandler = {
   handler: (...args: any[]) => Promise<any>;
 };
 
-import { FileIPC, MetadataIPC } from '../constants/ipc';
+import { FileIPC, MetadataIPC, ZipIPC } from '../constants/ipc';
 import { CsvMetadataRow, WriteMetadataResult } from './metadata';
 
 // 定義所有可能的 channel 名稱
-export type APIChannel = FileIPC | MetadataIPC;
+export type APIChannel = FileIPC | MetadataIPC | ZipIPC;
 
 // API 方法類型定義
 export interface APIMethodMap {

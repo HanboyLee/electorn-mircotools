@@ -1,0 +1,38 @@
+graph TD
+    A[Electron App] --> B[主進程]
+    A --> C[渲染進程]
+    
+    subgraph "主進程模組"
+        B --> D[FileService]
+        B --> E[ZipService]
+        B --> F[MetadataService]
+        B --> G[NetworkService]
+        B --> H[ConfigService]
+    end
+    
+    subgraph "IPC 通信"
+        D <--> I[IPC: file:]
+        E <--> J[IPC: zip:]
+        F <--> K[IPC: metadata:]
+        G <--> L[IPC: network:]
+        H <--> M[IPC: store:]
+    end
+    
+    subgraph "渲染進程"
+        C --> N[React 應用]
+        N --> O[頁面路由]
+        N --> P[UI 組件]
+        N --> Q[鉤子函數]
+        
+        O --> R[首頁]
+        O --> S[文件打包頁面]
+        O --> T[打包歷史頁面]
+        O --> U[設置頁面]
+        O --> V[其他頁面]
+    end
+    
+    I <--> P
+    J <--> P
+    K <--> P
+    L <--> P
+    M <--> P

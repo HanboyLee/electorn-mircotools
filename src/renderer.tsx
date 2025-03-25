@@ -36,6 +36,8 @@ import Home from './pages/Home';
 import Settings from './pages/Settings';
 import CsvValidation from './pages/CsvValidator';
 import ImageAnalyze from './pages/AnalyzeByImage';
+import FilePackaging from './pages/FilePackaging';
+import PackagingHistory from './pages/PackagingHistory';
 import { themes } from './themes';
 import { useSettingsStore } from '@/hooks/SettingsStore';
 import { GlobalStyle } from './themes/GlobalStyle';
@@ -55,6 +57,8 @@ const App: React.FC = () => {
             <Route path="/settings" element={<Settings />} />
             <Route path="/csv-validation" element={<CsvValidation />} />
             <Route path="/image-analyze" element={<ImageAnalyze />} />
+            <Route path="/file-packaging" element={<FilePackaging />} />
+            <Route path="/packaging-history" element={<PackagingHistory />} />
           </Routes>
         </MainLayout>
       </Router>

@@ -3,6 +3,8 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { FileService } from '../services/fileService';
 import { MetadataService } from '../services/metadataService';
 import { NetworkService } from '../services/networkService';
+import { ZipService, zipService } from '../services/zipService';
+import { ZipIPC } from '../constants/ipc';
 
 import * as path from 'path';
 
@@ -145,6 +147,7 @@ const initializeServices = () => {
     new FileService(),
     new MetadataService(),
     new NetworkService(),
+    new ZipService(),
     // 添加更多服務...
   ];
 
@@ -156,6 +159,8 @@ const initializeServices = () => {
 
   console.log('Services initialized successfully');
 };
+
+// // 註冊 ZIP 相關的 IPC 處理程序
 
 // 註冊窗口控制事件處理程序
 const registerWindowControlHandlers = (mainWindow: BrowserWindow) => {
@@ -174,7 +179,7 @@ const registerWindowControlHandlers = (mainWindow: BrowserWindow) => {
       mainWindow.unmaximize();
     }
   });
-  
+
   ipcMain.on('window-toggle-maximize', () => {
     if (mainWindow.isMaximized()) {
       mainWindow.unmaximize();
@@ -190,12 +195,12 @@ const registerWindowControlHandlers = (mainWindow: BrowserWindow) => {
   ipcMain.handle('is-window-maximized', () => {
     return mainWindow.isMaximized();
   });
-  
+
   // 監聽窗口最大化狀態變化
   mainWindow.on('maximize', () => {
     mainWindow.webContents.send('maximize');
   });
-  
+
   // 監聽窗口還原狀態變化
   mainWindow.on('unmaximize', () => {
     mainWindow.webContents.send('unmaximize');
@@ -241,20 +246,16 @@ const createWindow = async (): Promise<void> => {
     if (process.env.NODE_ENV === 'development') {
       console.log('Running in development mode');
 
-      mainWindow
-        .loadURL(VITE_DEV_SERVER_URL)
-        .catch(err => {
-          console.error('Error creating window:', err);
-        });
+      mainWindow.loadURL(VITE_DEV_SERVER_URL).catch(err => {
+        console.error('Error creating window:', err);
+      });
 
       mainWindow.webContents.openDevTools();
     } else {
       // Load the index.html when not in development
-      mainWindow
-        .loadFile(path.join(__dirname, 'renderer', 'index.html'))
-        .catch(err => {
-          console.error('Error loading index.html:', err);
-        });
+      mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html')).catch(err => {
+        console.error('Error loading index.html:', err);
+      });
     }
   } catch (err) {
     console.error('Error creating window:', err);
