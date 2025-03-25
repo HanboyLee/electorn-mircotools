@@ -7,7 +7,7 @@ module.exports = {
       unpack: "**/node_modules/electron-squirrel-startup/**/*"
     },
     icon: path.join(__dirname, 'src', 'assets', 'icon'),  
-    extraResource: ['./exiftool-13.12_64'],
+    extraResource: ['./exiftool-13.12_64', './node_modules/archiver/**/*'],
     ignore: [
       /node_modules/,
       /src/,
@@ -20,6 +20,9 @@ module.exports = {
           return false;
         }
         if (filePath.includes('node_modules/electron-squirrel-startup')) {
+          return false;
+        }
+        if (filePath.includes('node_modules/archiver')) {
           return false;
         }
         if (filePath.includes('.vite/build')) {
