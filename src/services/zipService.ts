@@ -8,8 +8,24 @@ import { FileGroup, FileInfo, ZipHistory, ZipResult } from '../types/zip';
 import Store from 'electron-store';
 import { v4 as uuidv4 } from 'uuid';
 
-// 使用 CommonJS 導入方式
-const archiver = require('archiver');
+// 使用 CommonJS 導入方式，添加錯誤處理
+let archiver;
+try {
+  // 嘗試直接引入
+  archiver = require('archiver');
+} catch (error) {
+  console.error('無法直接載入 archiver 模組，嘗試使用絕對路徑載入', error);
+  try {
+    // 嘗試使用相對路徑
+    const app = require('electron').app;
+    const archiverPath = path.join(app.getAppPath(), 'node_modules', 'archiver');
+    archiver = require(archiverPath);
+  } catch (fallbackError) {
+    console.error('無法使用絕對路徑載入 archiver 模組', fallbackError);
+    // 如果無法載入，提供一個錯誤訊息
+    throw new Error('無法載入 archiver 模組，請確保已安裝此依賴');
+  }
+}
 
 // 定義 Store 的類型
 interface ZipHistoryStore {

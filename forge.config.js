@@ -4,7 +4,12 @@ const path = require('path');
 module.exports = {
   packagerConfig: {
     asar: {
-      unpack: "**/node_modules/electron-squirrel-startup/**/*"
+      unpack: [
+        "**/node_modules/electron-squirrel-startup/**/*",
+        "**/node_modules/archiver/**/*", // 解壓 archiver 模組
+        "**/node_modules/fs-extra/**/*", // archiver 的依賴
+        "**/node_modules/readable-stream/**/*" // archiver 的依賴
+      ]
     },
     icon: path.join(__dirname, 'src', 'assets', 'icon'),  
     extraResource: ['./exiftool-13.12_64'],
@@ -24,7 +29,14 @@ module.exports = {
         if (filePath.includes('node_modules/electron-squirrel-startup')) {
           return false;
         }
+        // 確保包含 archiver 及其相關依賴
         if (filePath.includes('node_modules/archiver')) {
+          return false;
+        }
+        if (filePath.includes('node_modules/fs-extra')) {
+          return false;
+        }
+        if (filePath.includes('node_modules/readable-stream')) {
           return false;
         }
         if (filePath.includes('.vite/build')) {
