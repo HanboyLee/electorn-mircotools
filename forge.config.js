@@ -8,6 +8,8 @@ module.exports = {
     },
     icon: path.join(__dirname, 'src', 'assets', 'icon'),  
     extraResource: ['./exiftool-13.12_64'],
+    // 確保所有依賴都被正確打包
+    derefSymlinks: true,
     ignore: [
       /node_modules/,
       /src/,
@@ -20,6 +22,9 @@ module.exports = {
           return false;
         }
         if (filePath.includes('node_modules/electron-squirrel-startup')) {
+          return false;
+        }
+        if (filePath.includes('node_modules/archiver')) {
           return false;
         }
         if (filePath.includes('.vite/build')) {
