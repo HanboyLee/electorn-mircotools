@@ -19,7 +19,7 @@
   "build": {
     "icon": "./icon.ico",
     "asarUnpack": [
-      "node_modules/archiver/**/*"
+      "node_modules/adm-zip/**/*"
     ]
   },
   "files": [
@@ -80,14 +80,14 @@
   "license": "MIT",
   "dependencies": {
     "@ant-design/pro-components": "^2.8.3",
-    "@types/archiver": "^6.0.3",
+    "@types/adm-zip": "^0.5.7",
     "@types/papaparse": "^5.3.15",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
     "@types/styled-components": "^5.1.34",
     "@types/uuid": "^10.0.0",
+    "adm-zip": "^0.5.16",
     "antd": "^5.23.1",
-    "archiver": "^7.0.1",
     "axios": "^1.6.7",
     "dns": "^0.2.2",
     "dotenv": "^16.4.1",

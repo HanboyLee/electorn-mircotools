@@ -7,32 +7,8 @@ import { ServiceHandler } from '@/types/services';
 import { FileGroup, FileInfo, ZipHistory, ZipResult } from '../types/zip';
 import Store from 'electron-store';
 import { v4 as uuidv4 } from 'uuid';
-
-// 使用 CommonJS 導入方式 - 恢復原來的方式
-// 動態導入 archiver 模組
-let archiver;
-try {
-  // 先嘗試直接導入
-  archiver = require('archiver');
-} catch (error) {
-  try {
-    // 如果失敗，嘗試使用絕對路徑
-    const path = require('path');
-    const { app } = require('electron');
-    // 在打包的應用中，嘗試從資源目錄導入
-    const resourcePath = process.env.NODE_ENV === 'production'
-      ? path.join(process.resourcesPath, 'node_modules', 'archiver')
-      : path.join(app.getAppPath(), 'node_modules', 'archiver');
-    archiver = require(resourcePath);
-    console.log('從資源目錄導入 archiver 成功');
-  } catch (innerError) {
-    console.error('無法導入 archiver 模組：', innerError);
-    // 創建一個空函數以避免應用崩潰
-    archiver = () => {
-      throw new Error('無法動態加載 archiver 模組');
-    };
-  }
-}
+// 使用 adm-zip 替代 archiver
+import AdmZip from 'adm-zip';
 
 // 定義 Store 的類型
 interface ZipHistoryStore {
@@ -167,57 +143,38 @@ export class ZipService extends BaseService {
         // 創建輸出文件路徑
         const zipFilePath = path.join(targetDir, `${fileGroup.name}.zip`);
 
-        // 創建輸出流
-        const output = fs.createWriteStream(zipFilePath);
-
-        // 創建壓縮器
         console.log('創建壓縮器...');
-        const archive = archiver('zip', {
-          zlib: { level: 9 }, // 最高壓縮等級
-        });
-        console.log('壓縮器創建成功:', !!archive);
+        // 創建 AdmZip 實例
+        const zip = new AdmZip();
 
-        // 監聽輸出流的關閉事件
-        output.on('close', () => {
-          // 創建壓縮結果
-          const result: ZipResult = {
-            success: true,
-            outputPath: zipFilePath,
-            fileCount: fileGroup.files.length,
-            message: `成功創建 ZIP 文件: ${zipFilePath}`,
-            groupName: fileGroup.name,
-            sourceDirectory: fileGroup.basePath,
-            originalFiles: fileGroup.files.map(file => file.name),
-          };
-
-          // 添加到歷史記錄
-          this.addToHistory(result);
-
-          resolve(result);
-        });
-
-        // 監聽錯誤事件
-        archive.on('error', (err: Error) => {
-          reject({
-            success: false,
-            message: `創建 ZIP 文件時出錯: ${err.message}`,
-          });
-        });
-
-        // 將壓縮器管道連接到輸出流
-        archive.pipe(output);
-
-        // 添加文件到壓縮包 - 直接以文件名作為路徑
+        // 添加文件到壓縮包
         console.log(`添加 ${fileGroup.files.length} 個文件到壓縮包...`);
         for (const file of fileGroup.files) {
-          // 直接使用文件名，不包含任何路徑
           console.log(`添加文件: ${file.name}`);
-          archive.file(file.path, { name: file.name });
+          // 添加本地文件到 zip，第二個參數是目標文件夾（空字符串表示根目錄），第三個參數是目標文件名
+          zip.addLocalFile(file.path, '', file.name);
         }
         console.log('所有文件已添加到壓縮包');
 
-        // 完成壓縮
-        archive.finalize();
+        // 寫入 ZIP 文件
+        zip.writeZip(zipFilePath);
+        console.log(`ZIP 文件已寫入: ${zipFilePath}`);
+
+        // 創建壓縮結果
+        const result: ZipResult = {
+          success: true,
+          outputPath: zipFilePath,
+          fileCount: fileGroup.files.length,
+          message: `成功創建 ZIP 文件: ${zipFilePath}`,
+          groupName: fileGroup.name,
+          sourceDirectory: fileGroup.basePath,
+          originalFiles: fileGroup.files.map(file => file.name),
+        };
+
+        // 添加到歷史記錄
+        this.addToHistory(result);
+
+        resolve(result);
       } catch (error) {
         console.error('創建 ZIP 文件時出錯:', error);
         reject({

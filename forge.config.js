@@ -4,19 +4,16 @@ const path = require('path');
 module.exports = {
   packagerConfig: {
     asar: {
-      unpack: [
-        "**/node_modules/electron-squirrel-startup/**/*",
-        "**/node_modules/archiver/**/*"
-      ]
+      unpack: ['**/node_modules/electron-squirrel-startup/**/*', '**/node_modules/adm-zip/**/*'],
     },
-    icon: path.join(__dirname, 'src', 'assets', 'icon'),  
-    extraResource: ['./exiftool-13.12_64', './node_modules/archiver'],
+    icon: path.join(__dirname, 'src', 'assets', 'icon'),
+    extraResource: ['./exiftool-13.12_64', './node_modules/adm-zip'],
     ignore: [
       /src/,
       /out/,
       /forge\.config\.js/,
       /\.git/,
-      function(filePath) {
+      function (filePath) {
         // 始终包含这些文件
         if (filePath.includes('exiftool-13.12_64')) {
           return false;
@@ -24,15 +21,15 @@ module.exports = {
         if (filePath.includes('node_modules/electron-squirrel-startup')) {
           return false;
         }
-        if (filePath.includes('node_modules/archiver')) {
+        if (filePath.includes('node_modules/adm-zip')) {
           return false;
         }
         if (filePath.includes('.vite/build')) {
           return false;
         }
         return filePath.includes('node_modules');
-      }
-    ]
+      },
+    ],
   },
   rebuildConfig: {},
   makers: [
@@ -47,7 +44,7 @@ module.exports = {
         noMsi: true,
         remoteReleases: '',
         setupExe: 'metadata-app-setup.exe',
-        skipUpdateIcon: true
+        skipUpdateIcon: true,
       },
     },
     {
@@ -73,12 +70,12 @@ module.exports = {
         {
           entry: 'src/main/index.ts',
           config: 'vite.main.config.ts',
-          outDir: '.vite/build'
+          outDir: '.vite/build',
         },
         {
           entry: 'src/preload.ts',
           config: 'vite.preload.config.ts',
-          outDir: '.vite/build'
+          outDir: '.vite/build',
         },
       ],
       renderer: [
