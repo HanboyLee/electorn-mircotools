@@ -4,12 +4,14 @@ const path = require('path');
 module.exports = {
   packagerConfig: {
     asar: {
-      unpack: "**/node_modules/electron-squirrel-startup/**/*"
+      unpack: [
+        "**/node_modules/electron-squirrel-startup/**/*",
+        "**/node_modules/archiver/**/*"
+      ]
     },
     icon: path.join(__dirname, 'src', 'assets', 'icon'),  
-    extraResource: ['./exiftool-13.12_64', './node_modules/archiver/**/*'],
+    extraResource: ['./exiftool-13.12_64', './node_modules/archiver'],
     ignore: [
-      /node_modules/,
       /src/,
       /out/,
       /forge\.config\.js/,

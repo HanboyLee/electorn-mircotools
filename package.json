@@ -9,7 +9,7 @@
     "start:mac": "electron-forge start",
     "dev:win": "chcp 65001 >nul && npm run start && electronmon .",
     "dev:mac": "npm run start:mac && electronmon .",
-    "package": "electron-forge package",
+    "package": "node scripts/copy-modules.js && electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
@@ -17,7 +17,10 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\""
   },
   "build": {
-    "icon": "./icon.ico"
+    "icon": "./icon.ico",
+    "asarUnpack": [
+      "node_modules/archiver/**/*"
+    ]
   },
   "files": [
     ".vite/build/**/*",
@@ -63,6 +66,7 @@
     "eslint-import-resolver-typescript": "^3.7.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-prettier": "^5.2.1",
+    "fs-extra": "^11.3.0",
     "prettier": "^3.4.2",
     "ts-node": "^10.9.2",
     "typescript": "~4.5.4",

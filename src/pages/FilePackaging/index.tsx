@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Card, Table, message, Space, Input, Tooltip, Progress, Modal, Typography, Checkbox, theme } from 'antd';
-import { FolderOpenOutlined, FileZipOutlined, SearchOutlined, ReloadOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import {
+  Button,
+  Card,
+  Table,
+  message,
+  Space,
+  Input,
+  Tooltip,
+  Progress,
+  Modal,
+  Typography,
+  Checkbox,
+  theme,
+} from 'antd';
+import {
+  FolderOpenOutlined,
+  FileZipOutlined,
+  SearchOutlined,
+  ReloadOutlined,
+  InfoCircleOutlined,
+} from '@ant-design/icons';
 import { FileGroup, ZipResult } from '../../types/zip';
 import { FileIPC, ZipIPC } from '../../constants/ipc';
 import styled from 'styled-components';
@@ -10,16 +29,11 @@ const { Title, Text } = Typography;
 const { Search } = Input;
 
 const FilePackagingPage: React.FC = () => {
-  // 使用主題和設置
-  const { token } = theme.useToken();
-  const { settings } = useSettingsStore();
-  
   // 狀態管理
   const [selectedDirectory, setSelectedDirectory] = useState<string>('');
   const [fileGroups, setFileGroups] = useState<FileGroup[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [searchText, setSearchText] = useState<string>('');
-  const [selectedRows, setSelectedRows] = useState<FileGroup[]>([]);
   const [packagingProgress, setPackagingProgress] = useState<number>(0);
   const [isPackaging, setIsPackaging] = useState<boolean>(false);
   const [packagingResults, setPackagingResults] = useState<ZipResult[]>([]);
@@ -30,13 +44,13 @@ const FilePackagingPage: React.FC = () => {
     try {
       // 使用 FileIPC.SELECT_DIRECTORY 通道選擇目錄
       const directoryPath = await window.electronAPI[FileIPC.SELECT_DIRECTORY]();
-      
+
       console.log('選擇的目錄路徑:', directoryPath);
-      
+
       if (directoryPath) {
         // 設置選擇的目錄
         setSelectedDirectory(directoryPath);
-        
+
         // 選擇目錄後掃描文件
         await scanDirectory(directoryPath);
       } else {
@@ -48,22 +62,26 @@ const FilePackagingPage: React.FC = () => {
       setLoading(false);
     }
   };
-  
+
   // 確認打包
   const handleConfirmPackage = () => {
     if (!selectedDirectory) {
       message.error('請先選擇目錄');
       return;
     }
-    
+
     // 顯示確認對話框
     Modal.confirm({
       title: '確認打包路徑',
       content: (
         <div>
           <p>是否將已選擇的路徑為以名稱對應的打包為zip包，在已選擇的路徑下？</p>
-          <p><strong>選擇的路徑：</strong> {selectedDirectory}</p>
-          <p><strong>找到的文件組：</strong> {fileGroups.length} 個</p>
+          <p>
+            <strong>選擇的路徑：</strong> {selectedDirectory}
+          </p>
+          <p>
+            <strong>找到的文件組：</strong> {fileGroups.length} 個
+          </p>
         </div>
       ),
       onOk: async () => {
@@ -71,13 +89,13 @@ const FilePackagingPage: React.FC = () => {
           // 開始打包
           setIsPackaging(true);
           message.loading('正在打包文件...', 0);
-          
+
           // 掃描完成後自動開始打包
           await handleAutoPackage(selectedDirectory);
-          
+
           message.destroy();
           message.success('打包完成');
-          
+
           // 重新掃描目錄，更新文件組列表
           await scanDirectory(selectedDirectory);
         } catch (error) {
@@ -89,7 +107,7 @@ const FilePackagingPage: React.FC = () => {
         }
       },
       okText: '確認打包',
-      cancelText: '取消'
+      cancelText: '取消',
     });
   };
 
@@ -99,16 +117,16 @@ const FilePackagingPage: React.FC = () => {
       message.error('請選擇有效的目錄');
       return [];
     }
-    
+
     try {
       setLoading(true);
       console.log('開始掃描目錄:', directoryPath);
       const groups = await window.electronAPI[ZipIPC.SCAN_DIRECTORY](directoryPath);
       console.log('掃描結果:', groups);
-      
+
       // 確保設置文件組，即使是空數組
       setFileGroups(groups || []);
-      
+
       if (groups && groups.length > 0) {
         message.success(`找到 ${groups.length} 個文件組`);
         return groups;
@@ -142,23 +160,20 @@ const FilePackagingPage: React.FC = () => {
   // 過濾文件組
   const filteredFileGroups = fileGroups.filter(group => {
     if (!searchText) return true;
-    return group.name.toLowerCase().includes(searchText.toLowerCase()) || 
-           group.files.some(file => file.name.toLowerCase().includes(searchText.toLowerCase()));
+    return (
+      group.name.toLowerCase().includes(searchText.toLowerCase()) ||
+      group.files.some(file => file.name.toLowerCase().includes(searchText.toLowerCase()))
+    );
   });
 
-  // 處理表格行選擇
-  const rowSelection = {
-    onChange: (selectedRowKeys: React.Key[], selectedRows: FileGroup[]) => {
-      setSelectedRows(selectedRows);
-    },
-  };
+
 
   // 創建 ZIP 文件
   const createZip = async (fileGroup: FileGroup) => {
     try {
       setIsPackaging(true);
       setPackagingProgress(0);
-      
+
       // 模擬進度
       const timer = setInterval(() => {
         setPackagingProgress(prev => {
@@ -169,12 +184,12 @@ const FilePackagingPage: React.FC = () => {
           return prev + 10;
         });
       }, 200);
-      
+
       const result = await window.electronAPI[ZipIPC.CREATE_ZIP](fileGroup);
-      
+
       clearInterval(timer);
       setPackagingProgress(100);
-      
+
       if (result && result.success) {
         message.success(`成功創建 ZIP 文件: ${result.outputPath}`);
         return result;
@@ -203,49 +218,28 @@ const FilePackagingPage: React.FC = () => {
     }
   };
 
-  // 處理批量打包
-  const handleBatchPackage = async () => {
-    if (selectedRows.length === 0) {
-      message.warning('請至少選擇一個文件組');
-      return;
-    }
 
-    const results: ZipResult[] = [];
-    
-    for (const fileGroup of selectedRows) {
-      const result = await createZip(fileGroup);
-      if (result) {
-        results.push(result);
-      }
-    }
-    
-    if (results.length > 0) {
-      setPackagingResults(results);
-      setShowResults(true);
-      message.success(`成功創建 ${results.length} 個 ZIP 文件`);
-    }
-  };
-  
+
   // 自動打包所有文件組
   const handleAutoPackage = async (directoryPath: string) => {
     try {
       console.log('開始自動打包，使用已掃描的文件組');
-      
+
       // 使用已經掃描到的文件組，而不是重新掃描
       if (!fileGroups || fileGroups.length === 0) {
         console.log('沒有文件組，重新掃描');
         const groups = await window.electronAPI[ZipIPC.SCAN_DIRECTORY](directoryPath);
-        
+
         if (!groups || groups.length === 0) {
           message.info('未找到可打包的文件組');
           return;
         }
-        
+
         setFileGroups(groups);
       }
-      
+
       const results: ZipResult[] = [];
-      
+
       for (const fileGroup of fileGroups) {
         console.log('正在打包文件組:', fileGroup.name);
         const result = await createZip(fileGroup);
@@ -253,7 +247,7 @@ const FilePackagingPage: React.FC = () => {
           results.push(result);
         }
       }
-      
+
       if (results.length > 0) {
         setPackagingResults(results);
         setShowResults(true);
@@ -261,7 +255,7 @@ const FilePackagingPage: React.FC = () => {
       } else {
         message.warning('沒有成功創建任何 ZIP 文件');
       }
-      
+
       return results;
     } catch (error) {
       console.error('自動打包時出錯:', error);
@@ -317,9 +311,9 @@ const FilePackagingPage: React.FC = () => {
       render: (record: FileGroup) => (
         <Space size="small">
           <Tooltip title="查看詳情">
-            <Button 
-              type="text" 
-              icon={<InfoCircleOutlined />} 
+            <Button
+              type="text"
+              icon={<InfoCircleOutlined />}
               onClick={() => {
                 Modal.info({
                   title: `文件組 "${record.name}" 詳情`,
@@ -345,9 +339,9 @@ const FilePackagingPage: React.FC = () => {
             />
           </Tooltip>
           <Tooltip title="打包">
-            <Button 
-              type="primary" 
-              icon={<FileZipOutlined />} 
+            <Button
+              type="primary"
+              icon={<FileZipOutlined />}
               onClick={() => handlePackageSingle(record)}
               disabled={isPackaging}
             />
@@ -363,9 +357,9 @@ const FilePackagingPage: React.FC = () => {
         <Header>
           <Title level={4}>文件打包</Title>
           <Actions>
-            <Button 
-              type="primary" 
-              icon={<FolderOpenOutlined />} 
+            <Button
+              type="primary"
+              icon={<FolderOpenOutlined />}
               onClick={handleSelectDirectory}
               disabled={isPackaging || loading}
               loading={loading}
@@ -374,46 +368,35 @@ const FilePackagingPage: React.FC = () => {
             </Button>
             {selectedDirectory && (
               <>
-                <Button 
-                  icon={<ReloadOutlined />} 
+                <Button
+                  icon={<ReloadOutlined />}
                   onClick={handleRescan}
                   disabled={isPackaging || loading}
                   loading={loading}
                 >
                   重新掃描
                 </Button>
-                <Button 
-                  type="primary" 
-                  icon={<FileZipOutlined />} 
+                <Button
+                  type="primary"
+                  icon={<FileZipOutlined />}
                   onClick={handleConfirmPackage}
                   disabled={isPackaging || loading}
                   loading={isPackaging}
                 >
                   確認打包
                 </Button>
-                {fileGroups.length > 0 && (
-                  <Button 
-                    type="primary" 
-                    icon={<FileZipOutlined />} 
-                    onClick={handleBatchPackage}
-                    disabled={isPackaging || loading || selectedRows.length === 0}
-                    loading={isPackaging}
-                  >
-                    批量打包
-                  </Button>
-                )}
               </>
             )}
           </Actions>
         </Header>
-        
+
         {selectedDirectory && (
           <DirectoryInfo>
             <Text strong>當前目錄: </Text>
             <Text>{selectedDirectory}</Text>
           </DirectoryInfo>
         )}
-        
+
         {selectedDirectory && (
           <SearchBar>
             <Search
@@ -430,19 +413,15 @@ const FilePackagingPage: React.FC = () => {
             </Text>
           </SearchBar>
         )}
-        
+
         {isPackaging && (
           <ProgressContainer>
             <Progress percent={packagingProgress} status="active" />
             <Text type="secondary">正在創建 ZIP 文件，請稍候...</Text>
           </ProgressContainer>
         )}
-        
+
         <StyledTable
-          rowSelection={{
-            type: 'checkbox',
-            ...rowSelection,
-          }}
           columns={columns}
           dataSource={filteredFileGroups}
           rowKey="name"
@@ -451,7 +430,7 @@ const FilePackagingPage: React.FC = () => {
           locale={{ emptyText: selectedDirectory ? '未找到文件組' : '請選擇一個目錄' }}
         />
       </StyledCard>
-      
+
       <Modal
         title="打包結果"
         open={showResults}
@@ -459,7 +438,7 @@ const FilePackagingPage: React.FC = () => {
         footer={[
           <Button key="close" onClick={() => setShowResults(false)}>
             關閉
-          </Button>
+          </Button>,
         ]}
         width={600}
       >
@@ -469,12 +448,11 @@ const FilePackagingPage: React.FC = () => {
               <ResultHeader>
                 <div>
                   <Text strong>{result.groupName}.zip</Text>
-                  <Text type="secondary" style={{ marginLeft: '8px' }}>包含 {result.fileCount} 個文件</Text>
+                  <Text type="secondary" style={{ marginLeft: '8px' }}>
+                    包含 {result.fileCount} 個文件
+                  </Text>
                 </div>
-                <Button 
-                  type="link" 
-                  onClick={() => openFileLocation(result.outputPath)}
-                >
+                <Button type="link" onClick={() => openFileLocation(result.outputPath)}>
                   打開位置
                 </Button>
               </ResultHeader>
@@ -582,12 +560,12 @@ const FileList = styled.div`
   max-height: 200px;
   overflow-y: auto;
   margin-top: 8px;
-  
+
   ul {
     padding-left: 20px;
     margin: 8px 0;
   }
-  
+
   li {
     margin-bottom: 4px;
   }
