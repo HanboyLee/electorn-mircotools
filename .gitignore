@@ -63,3 +63,7 @@ Thumbs.db
 .windsurfrules
 
 .env*
+
+.windsurf/
+openspec
+AGENTS.md
