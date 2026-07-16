@@ -9,7 +9,6 @@ import {
   SettingOutlined,
   QuestionCircleOutlined,
   FileZipOutlined,
-  HistoryOutlined,
 } from '@ant-design/icons';
 
 interface SidebarMenuProps {
@@ -42,11 +41,6 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({ collapsed, onCollapse }) => {
       key: '/file-packaging',
       icon: <FileZipOutlined />,
       label: '文件打包',
-    },
-    {
-      key: '/packaging-history',
-      icon: <HistoryOutlined />,
-      label: '打包歷史',
     },
     {
       key: '/settings',

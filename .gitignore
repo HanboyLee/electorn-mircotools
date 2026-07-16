@@ -59,11 +59,40 @@ Thumbs.db
 .vite/build/index.js
 .vite/build/index.js.map
 
-#rules
-.windsurfrules
-
 .env*
 
+# ---------------------------------------------------------------------------
+# AI tooling — local only, never push to GitHub
+# ---------------------------------------------------------------------------
+
+# Grok / agent harness
+.grok/
+.agents/
+.claude/
+.codex/
+.cursor/
+.clinerules
+.clinerules/
+.windsurfrules
 .windsurf/
-openspec
+
+# Project agent instruction files
 AGENTS.md
+Agents.md
+AGENT.md
+CLAUDE.md
+CLAUDE.local.md
+Claude.md
+
+# OpenSpec
+openspec/
+
+# CodeGraph
+.codegraph/
+.mcp.json
+
+# Graphify
+graphify-out/
+
+# skills.sh lockfile / installs
+skills-lock.json

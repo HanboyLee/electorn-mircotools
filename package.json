@@ -14,7 +14,12 @@
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\""
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
+    "graphify:update": "node scripts/graphify-update.mjs",
+    "graphify:update:force": "node scripts/graphify-update.mjs --force",
+    "graphify:cluster": "graphify cluster-only .",
+    "graphify:html": "graphify export html",
+    "graphify:query": "graphify query"
   },
   "build": {
     "icon": "./icon.ico"

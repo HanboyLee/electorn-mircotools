@@ -32,12 +32,11 @@ import { createRoot } from 'react-dom/client';
 import { ConfigProvider } from 'antd';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import MainLayout from './components/Layout/MainLayout';
-import Home from './pages/Home';
-import Settings from './pages/Settings';
+import Home from './pages/Home/index';
+import Settings from './pages/Settings/index';
 import CsvValidation from './pages/CsvValidator';
 import ImageAnalyze from './pages/AnalyzeByImage';
 import FilePackaging from './pages/FilePackaging';
-import PackagingHistory from './pages/PackagingHistory';
 import { themes } from './themes';
 import { useSettingsStore } from '@/hooks/SettingsStore';
 import { GlobalStyle } from './themes/GlobalStyle';
@@ -58,7 +57,6 @@ const App: React.FC = () => {
             <Route path="/csv-validation" element={<CsvValidation />} />
             <Route path="/image-analyze" element={<ImageAnalyze />} />
             <Route path="/file-packaging" element={<FilePackaging />} />
-            <Route path="/packaging-history" element={<PackagingHistory />} />
           </Routes>
         </MainLayout>
       </Router>

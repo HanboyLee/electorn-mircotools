@@ -30,21 +30,15 @@ export enum NetworkIPC {
   CHECK_URL = 'network:check-url',
 }
 
-// 文件打包相關的 IPC 通道
+// 文件打包相關的 IPC 通道（僅服務「文件打包」頁；不含歷史記錄）
 export enum ZipIPC {
   // 掃描目錄，找出同名不同擴展名的文件
   SCAN_DIRECTORY = 'zip:scan-directory',
-  
+
   // 創建ZIP壓縮包
   CREATE_ZIP = 'zip:create',
-  
-  // 獲取打包歷史記錄
-  GET_PACKAGE_HISTORY = 'zip:get-history',
-  
-  // 清空歷史記錄
-  CLEAR_HISTORY = 'zip:clear-history',
-  
-  // 打開文件或目錄
+
+  // 打開文件或目錄（打包結果/路徑預覽）
   OPEN_ITEM = 'zip:open-item',
 }
 
