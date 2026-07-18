@@ -60,8 +60,21 @@ module.exports = {
       },
     },
     {
+      // 备用：纯 zip（内含 .app），便于脚本/解压分发
       name: '@electron-forge/maker-zip',
       platforms: ['darwin'],
+    },
+    {
+      // 用户向 macOS 安装镜像（Releases 主推）
+      name: '@electron-forge/maker-dmg',
+      platforms: ['darwin'],
+      config: {
+        name: 'metadata-app',
+        title: 'metadata-app',
+        icon: path.join(__dirname, 'src', 'assets', 'icon.icns'),
+        // ULFO：压缩较好；若 CI 失败可改为 UDZO
+        format: 'ULFO',
+      },
     },
     {
       name: '@electron-forge/maker-deb',
