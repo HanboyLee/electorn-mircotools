@@ -6,7 +6,15 @@
 
 ## [Unreleased]
 
-（暂无）
+### 新增
+- GitHub Actions CI（`.github/workflows/ci.yml`）：`pull_request` / `push` 到 `master` 时执行安装依赖、lint（暂不阻断）、test
+- GitHub Actions CD（`.github/workflows/release.yml`）：推送 `v*` tag（或手动 workflow_dispatch）时在 Windows 上 `npm run make` 并上传 GitHub Release
+
+### 变更
+- 包管理统一为 npm（移除 `yarn.lock`，保留 `package-lock.json`）
+- 补齐 ESLint React 插件（`eslint-plugin-react`、`eslint-plugin-react-hooks`）
+- `npm test` 增加 `--passWithNoTests`（远程未入库测试时 CI 不因「无测试文件」失败）
+- `package.json` 声明 `engines.node >= 20`
 
 ## [1.3.0] - 2026-07-18
 

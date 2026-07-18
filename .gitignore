@@ -36,6 +36,9 @@ node_modules/
 # Yarn Integrity file
 .yarn-integrity
 
+# Prefer npm only (package-lock.json). Do not reintroduce yarn.lock.
+yarn.lock
+
 # dotenv environment variables file
 .env
 .env.test

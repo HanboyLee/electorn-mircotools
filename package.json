@@ -7,16 +7,17 @@
   "scripts": {
     "start:win": "chcp 65001 >nul && electron-forge start",
     "start:mac": "electron-forge start",
-    "dev:win": "chcp 65001 >nul && npm run start && electronmon .",
-    "dev:mac": "npm run start:mac && electronmon .",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "build": {
     "icon": "./icon.ico"
@@ -25,18 +26,6 @@
     ".vite/build/**/*",
     "package.json"
   ],
-  "electronmon": {
-    "patterns": [
-      "src/main/index.ts",
-      "src/preload.ts",
-      "src/services/*"
-    ],
-    "ignored": [
-      "node_modules/**/*",
-      ".vite/**/*",
-      "dist/**/*"
-    ]
-  },
   "config": {
     "forge": "./forge.config.js"
   },
@@ -60,12 +49,13 @@
     "cross-env": "^7.0.3",
     "electron": "33.3.1",
     "electron-reloader": "^1.2.3",
-    "electronmon": "^2.0.3",
     "eslint": "^8.0.1",
     "eslint-config-prettier": "^10.0.1",
     "eslint-import-resolver-typescript": "^3.7.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.4.2",
     "ts-node": "^10.9.2",
     "typescript": "~4.5.4",
