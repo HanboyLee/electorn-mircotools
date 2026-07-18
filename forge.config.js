@@ -8,14 +8,17 @@ module.exports = {
     },
     icon: path.join(__dirname, 'src', 'assets', 'icon'),  
     extraResource: ['./exiftool-13.12_64'],
+    // 主进程依赖应尽量由 Vite 打进 .vite/build（见 vite.main.config.ts）。
+    // 此处只额外放行必须落在磁盘上的路径；不要再依赖 node_modules 里的业务包。
     ignore: [
       /node_modules/,
       /src/,
       /out/,
       /forge\.config\.js/,
       /\.git/,
-      function(filePath) {
-        // 始终包含这些文件
+      function (filePath) {
+        // ignore: true = 排除；false = 打进安装包
+        if (!filePath) return false;
         if (filePath.includes('exiftool-13.12_64')) {
           return false;
         }
@@ -25,9 +28,13 @@ module.exports = {
         if (filePath.includes('.vite/build')) {
           return false;
         }
-        return filePath.includes('node_modules');
-      }
-    ]
+        // 其余 node_modules 一律不进包（避免体积膨胀；业务代码须已 bundle）
+        if (filePath.includes('node_modules')) {
+          return true;
+        }
+        return false;
+      },
+    ],
   },
   rebuildConfig: {},
   makers: [

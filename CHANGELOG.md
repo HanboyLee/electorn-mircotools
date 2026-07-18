@@ -6,8 +6,15 @@
 
 ## [Unreleased]
 
+（暂无）
+
+## [1.3.2] - 2026-07-18
+
+### 修复
+- Windows 安装包启动即报 `Cannot find module 'archiver'`：将 `archiver` 改为 ESM import 并由 Vite 打进主进程 bundle；完善 `vite.main.config.ts` 对 Node 内置模块的 external，避免安装目录无 `node_modules` 时主进程崩溃
+
 ### 变更
-- 重写根目录 `README.md`：突出项目用途与各模块作用，以及用户安装 / 开发者运行步骤（弱化流程说明）
+- 重写根目录 `README.md`：突出项目用途与各模块作用，以及用户安装 / 开发者运行步骤
 
 ## [1.3.1] - 2026-07-18
 

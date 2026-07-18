@@ -77,7 +77,7 @@ FileName,Title,Description,Keywords
 
 1. 打开发布页：  
    https://github.com/HanboyLee/electorn-mircotools/releases  
-2. 进入最新版本（例如 [v1.3.1](https://github.com/HanboyLee/electorn-mircotools/releases/tag/v1.3.1)）  
+2. 进入最新版本（例如 [v1.3.2](https://github.com/HanboyLee/electorn-mircotools/releases/tag/v1.3.2)）  
 3. 下载 **`metadata-app-setup.exe`**  
 4. 双击安装，按向导完成  
 
@@ -166,6 +166,6 @@ forge.config.js  # 打包配置（含 ExifTool 等资源）
 
 ## 版本与反馈
 
-- 当前应用版本见 `package.json` 的 `version`（现为 **1.3.1**）  
+- 当前应用版本见 `package.json` 的 `version`（现为 **1.3.2**）  
 - 问题与需求：在 GitHub 仓库提 Issue  
 - 仓库：https://github.com/HanboyLee/electorn-mircotools  
