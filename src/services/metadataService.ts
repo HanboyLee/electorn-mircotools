@@ -12,6 +12,30 @@ import { app } from 'electron';
 
 const execAsync = promisify(exec);
 
+/** Collect keywords from IPTC/XMP/generic fields after ExifTool read. */
+function normalizeKeywordsFromRead(written: any, fallback: string[]): string[] {
+  if (!written) return fallback;
+  const candidates = [
+    written.Keywords,
+    written.Subject,
+    written['IPTC:Keywords'],
+    written['XMP-dc:Subject'],
+    written['XMP:Subject'],
+  ];
+  for (const value of candidates) {
+    if (Array.isArray(value) && value.length) {
+      return value.map(String).map(k => k.trim()).filter(Boolean);
+    }
+    if (typeof value === 'string' && value.trim()) {
+      return value
+        .split(/[;,]/)
+        .map(k => k.trim())
+        .filter(Boolean);
+    }
+  }
+  return fallback;
+}
+
 export class MetadataService extends BaseService {
   private static instance: MetadataService;
   private exiftool: ExifTool | null = null;
@@ -238,26 +262,36 @@ export class MetadataService extends BaseService {
 
           const ext = path.extname(imagePath).toLowerCase();
           const isVideo = ext === '.mp4';
+          // Prefer list form so ExifTool writes multi-value tags correctly.
+          // PNG viewers (Preview/Finder/stock sites) typically surface XMP-dc:Subject,
+          // not IPTC:Keywords — bare "Keywords" alone is easy to "miss" on PNG.
+          const keywordList = row.Keywords.split(',')
+            .map(k => k.trim())
+            .filter(Boolean);
 
           const metadata = isVideo
             ? {
                 Title: row.Title,
                 Description: row.Description,
-                Keywords: row.Keywords.split(',').map(k => k.trim()),
+                Keywords: keywordList,
                 'QuickTime:Title': row.Title,
                 'QuickTime:Description': row.Description,
                 'XMP-dc:Title': row.Title,
                 'XMP-dc:Description': row.Description,
-                'XMP-dc:Subject': row.Keywords.split(',').map(k => k.trim()),
+                'XMP-dc:Subject': keywordList,
               }
             : {
                 Title: row.Title,
                 Description: row.Description,
-                Keywords: row.Keywords.split(',').map(k => k.trim()),
-                'XMP:Title': row.Title,
-                'XMP:Description': row.Description,
+                Keywords: keywordList,
+                // XMP (works for JPEG + PNG; what most tools show as "keywords" on PNG)
+                'XMP-dc:Title': row.Title,
+                'XMP-dc:Description': row.Description,
+                'XMP-dc:Subject': keywordList,
+                // IPTC (common for JPEG stock/DAM; ExifTool can also attach to PNG)
                 'IPTC:ObjectName': row.Title,
                 'IPTC:Caption-Abstract': row.Description,
+                'IPTC:Keywords': keywordList,
               };
 
           console.log('準備寫入元數據：', metadata);
@@ -274,13 +308,12 @@ export class MetadataService extends BaseService {
             filename: row.Filename,
             success: true,
             metadata: {
-              Title: writtenMetadata.Title,
-              Description: writtenMetadata.Description,
-              Keywords: Array.isArray(writtenMetadata.Keywords)
-                ? writtenMetadata.Keywords
-                : writtenMetadata.Keywords?.split(';')
-                    .map(k => k.trim())
-                    .filter(k => k) || [],
+              Title: writtenMetadata?.Title ?? writtenMetadata?.['XMP-dc:Title'] ?? row.Title,
+              Description:
+                writtenMetadata?.Description ??
+                writtenMetadata?.['XMP-dc:Description'] ??
+                row.Description,
+              Keywords: normalizeKeywordsFromRead(writtenMetadata, keywordList),
             },
           });
         } catch (error) {

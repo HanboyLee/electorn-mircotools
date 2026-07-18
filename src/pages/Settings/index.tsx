@@ -139,7 +139,7 @@ const Settings: React.FC = () => {
         <Space align="center" style={{ marginBottom: 24 }}>
           <SettingOutlined style={{ fontSize: 24 }} />
           <Title level={2} style={{ margin: 0 }}>
-            系統設置
+            設置
           </Title>
         </Space>
 

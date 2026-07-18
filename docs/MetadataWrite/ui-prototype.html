@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>元數據寫入 · UI 原型</title>
+  <style>
+    :root {
+      --primary: #4B9FE1;
+      --primary-hover: #3A8FD0;
+      --primary-soft: #E8F3FF;
+      --layout-bg: #F0F4F8;
+      --card: #FFFFFF;
+      --text: #1F2937;
+      --text-secondary: #6B7280;
+      --border: #E5E7EB;
+      --success: #16A34A;
+      --success-bg: #F0FDF4;
+      --warning: #D97706;
+      --warning-bg: #FFFBEB;
+      --error: #DC2626;
+      --error-bg: #FEF2F2;
+      --muted: #F9FAFB;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+      --sidebar-w: 200px;
+      --titlebar-h: 32px;
+      --actionbar-h: 64px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: #1a1a1a;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    .doc-header {
+      width: min(1180px, 100%);
+      color: #e5e7eb;
+      margin-bottom: 16px;
+    }
+    .doc-header h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    .doc-header p { font-size: 13px; color: #9ca3af; line-height: 1.5; }
+    .doc-header code {
+      background: #374151; padding: 1px 6px; border-radius: 4px; font-size: 12px;
+    }
+
+    .scene-switch {
+      width: min(1180px, 100%);
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .scene-switch button {
+      border: 1px solid #4b5563;
+      background: #111827;
+      color: #e5e7eb;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+    .scene-switch button:hover { border-color: var(--primary); color: #fff; }
+    .scene-switch button.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    /* App chrome */
+    .app {
+      width: min(1180px, 100%);
+      height: 720px;
+      background: var(--layout-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,.45);
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      grid-template-rows: var(--titlebar-h) 1fr;
+      position: relative;
+    }
+
+    .titlebar {
+      grid-column: 1 / -1;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 13px;
+      -webkit-app-region: drag;
+    }
+    .titlebar .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+    .titlebar .dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+    }
+    .win-btns { display: flex; gap: 4px; }
+    .win-btns span {
+      width: 28px; height: 24px; display: grid; place-items: center;
+      color: var(--text-secondary); font-size: 12px; border-radius: 4px;
+    }
+
+    .sidebar {
+      background: #fff;
+      border-right: 1px solid var(--border);
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text);
+      cursor: default;
+    }
+    .nav-item.active {
+      background: var(--primary-soft);
+      color: #1668dc;
+      font-weight: 600;
+    }
+    .nav-item .ico { width: 16px; text-align: center; opacity: .75; }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      background: var(--layout-bg);
+    }
+
+    .scroll {
+      flex: 1;
+      overflow: auto;
+      padding: 16px 20px 88px;
+    }
+
+    /* Page header */
+    .page-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .page-head h2 { font-size: 18px; font-weight: 600; }
+    .page-head .sub { font-size: 13px; color: var(--text-secondary); margin-top: 4px; line-height: 1.5; }
+    .link-btn {
+      border: none; background: none; color: var(--primary);
+      font-size: 13px; cursor: pointer; white-space: nowrap;
+      text-decoration: underline; text-underline-offset: 2px;
+    }
+
+
+    /* Grid body */
+    .body-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .body-grid { grid-template-columns: 1fr; }
+      .app { height: auto; min-height: 720px; }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .card + .card { margin-top: 12px; }
+    .card-title {
+      font-size: 14px; font-weight: 600;
+      margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px;
+    }
+    .card-title .badge {
+      font-size: 11px; font-weight: 500;
+      padding: 2px 8px; border-radius: 999px;
+    }
+    .badge.ok { background: var(--success-bg); color: var(--success); }
+    .badge.warn { background: var(--warning-bg); color: var(--warning); }
+    .badge.muted { background: var(--muted); color: var(--text-secondary); }
+
+    /* Directory card */
+    .dir-row {
+      display: flex; gap: 10px; align-items: stretch;
+    }
+    .path-box {
+      flex: 1; min-width: 0;
+      background: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .path-box.filled { color: var(--text); background: #fff; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      border: none; border-radius: 8px;
+      padding: 0 14px; height: 36px;
+      font-size: 13px; font-weight: 500;
+      cursor: pointer;
+      transition: background .15s ease, opacity .15s ease, box-shadow .15s ease;
+    }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-default { background: #fff; color: var(--text); border: 1px solid var(--border); }
+    .btn-default:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    .btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid transparent; }
+    .btn-ghost:hover:not(:disabled) { background: var(--muted); }
+    .btn-danger-ghost { background: transparent; color: var(--error); }
+    .meta-line {
+      margin-top: 10px; font-size: 12px; color: var(--text-secondary);
+      display: flex; flex-wrap: wrap; gap: 12px;
+    }
+    .meta-line strong { color: var(--text); font-weight: 600; }
+
+    /* Dropzone */
+    .dropzone {
+      border: 1.5px dashed #C5D4E8;
+      background: linear-gradient(180deg, #F8FBFF 0%, #fff 100%);
+      border-radius: 10px;
+      padding: 28px 16px;
+      text-align: center;
+      transition: border-color .15s, background .15s;
+    }
+    .dropzone:hover { border-color: var(--primary); background: var(--primary-soft); }
+    .dropzone .icon {
+      width: 40px; height: 40px; margin: 0 auto 10px;
+      border-radius: 10px; background: var(--primary-soft);
+      display: grid; place-items: center; color: var(--primary); font-size: 18px;
+    }
+    .dropzone p { font-size: 13px; color: var(--text); }
+    .dropzone .hint { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+    .file-chip {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--success-bg);
+      border: 1px solid #BBF7D0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-top: 12px;
+    }
+    .file-chip .name { flex: 1; font-size: 13px; font-weight: 500; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-chip .size { font-size: 12px; color: var(--text-secondary); }
+
+    /* Stats */
+    .stats {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .stat {
+      background: var(--muted);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .stat .label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+    .stat .value { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+    .stat.ok .value { color: var(--success); }
+    .stat.warn .value { color: var(--warning); }
+    .stat.error .value { color: var(--error); }
+
+    /* Checklist */
+    .check-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .check-list li {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 13px; line-height: 1.4;
+    }
+    .check {
+      width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+      display: grid; place-items: center; font-size: 11px; margin-top: 1px;
+      border: 1.5px solid var(--border); color: transparent;
+    }
+    .check.on {
+      background: var(--success); border-color: var(--success); color: #fff;
+    }
+    .check.off { background: #fff; color: transparent; }
+    .check.warn {
+      background: var(--warning-bg); border-color: var(--warning); color: var(--warning);
+    }
+
+    /* Table */
+    .table-wrap {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: auto;
+      max-height: 200px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th {
+      text-align: left; background: var(--muted);
+      padding: 8px 10px; font-weight: 600;
+      position: sticky; top: 0; border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 8px 10px; border-bottom: 1px solid var(--border);
+      max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr.row-miss { background: #FFF7ED; }
+    .tag {
+      display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 4px;
+      background: var(--success-bg); color: var(--success);
+    }
+    .tag.miss { background: var(--warning-bg); color: var(--warning); }
+
+    /* Alerts */
+    .alert {
+      border-radius: 8px; padding: 10px 12px; font-size: 12px; line-height: 1.5;
+      border: 1px solid; margin-top: 12px;
+    }
+    .alert.error { background: var(--error-bg); border-color: #FECACA; color: #991B1B; }
+    .alert.warn { background: var(--warning-bg); border-color: #FDE68A; color: #92400E; }
+    .alert.success { background: var(--success-bg); border-color: #BBF7D0; color: #166534; }
+    .alert ul { margin: 6px 0 0 16px; }
+    .alert-title { font-weight: 600; margin-bottom: 2px; }
+
+    /* Format collapse */
+    .collapse {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--muted);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .collapse summary {
+      cursor: pointer; padding: 10px 12px; font-size: 13px; font-weight: 500;
+      list-style: none; display: flex; align-items: center; gap: 6px;
+      color: var(--text-secondary);
+    }
+    .collapse summary::-webkit-details-marker { display: none; }
+    .collapse[open] summary { border-bottom: 1px solid var(--border); }
+    .collapse .body { padding: 12px; font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+    .code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: #fff; border: 1px solid var(--border);
+      padding: 8px 10px; border-radius: 6px; color: #1668dc;
+      margin: 8px 0; display: block;
+    }
+
+    /* Empty */
+    .empty {
+      text-align: center; padding: 48px 20px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .empty .hero-ico {
+      width: 64px; height: 64px; margin: 0 auto 16px;
+      border-radius: 16px; background: var(--primary-soft);
+      display: grid; place-items: center; color: var(--primary);
+    }
+    .empty .hero-ico svg { width: 32px; height: 32px; }
+    .empty h3 { font-size: 16px; margin-bottom: 8px; }
+    .empty p { font-size: 13px; color: var(--text-secondary); max-width: 360px; margin: 0 auto 20px; line-height: 1.55; }
+
+    /* Result */
+    .result-hero {
+      text-align: center; padding: 24px 16px 8px;
+    }
+    .result-hero .big {
+      width: 56px; height: 56px; margin: 0 auto 12px;
+      border-radius: 50%; display: grid; place-items: center;
+      font-size: 28px;
+    }
+    .result-hero.ok .big { background: var(--success-bg); color: var(--success); }
+    .result-hero.partial .big { background: var(--warning-bg); color: var(--warning); }
+    .result-hero h3 { font-size: 18px; margin-bottom: 6px; }
+    .result-hero p { font-size: 13px; color: var(--text-secondary); }
+
+    /* Sticky action bar */
+    .actionbar {
+      position: absolute;
+      left: var(--sidebar-w);
+      right: 0;
+      bottom: 0;
+      height: var(--actionbar-h);
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      gap: 12px;
+      z-index: 5;
+    }
+    .actionbar .hint {
+      font-size: 12px; color: var(--text-secondary);
+      flex: 1; min-width: 0;
+    }
+    .actionbar .actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .btn-lg { height: 40px; padding: 0 20px; font-size: 14px; box-shadow: 0 2px 6px rgba(75,159,225,.35); }
+    .btn-lg:disabled { box-shadow: none; }
+
+    /* Progress writing */
+    .progress-block { margin-top: 12px; }
+    .progress-track {
+      height: 8px; background: #E5E7EB; border-radius: 999px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; width: 62%;
+      background: linear-gradient(90deg, var(--primary), #60A5FA);
+      border-radius: 999px;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .75; }
+    }
+    .progress-meta {
+      display: flex; justify-content: space-between;
+      font-size: 12px; color: var(--text-secondary); margin-top: 6px;
+    }
+
+    .scene { display: none; height: 100%; }
+    .scene.active { display: flex; flex-direction: column; min-height: 0; }
+
+    .note-footer {
+      width: min(1180px, 100%);
+      margin-top: 16px;
+      font-size: 12px;
+      color: #9ca3af;
+      line-height: 1.6;
+    }
+    .note-footer strong { color: #d1d5db; }
+  </style>
+</head>
+<body>
+  <header class="doc-header">
+    <h1>元數據寫入 · UI 原型（靜態）</h1>
+    <p>
+      設計依據 ui-ux-pro-max；對齊產品技術棧 antd + 現有主題色。  
+      用下方按鈕切換場景。實作說明見 <code>ui-ux-review.md</code> / 流程見 <code>ui-flow.mermaid</code>。
+    </p>
+  </header>
+
+  <div class="scene-switch" id="sceneSwitch">
+    <button type="button" data-scene="empty" class="active">1 · 空狀態</button>
+    <button type="button" data-scene="ready">2 · 就緒可寫入</button>
+    <button type="button" data-scene="writing">3 · 寫入中</button>
+    <button type="button" data-scene="result">4 · 結果（部分失敗）</button>
+  </div>
+
+  <div class="app" id="app">
+    <div class="titlebar">
+      <div class="brand"><span class="dot"></span> Micro DOU Golden Man</div>
+      <div class="win-btns"><span>−</span><span>□</span><span>×</span></div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="nav-item"><span class="ico">◎</span> 系統調試</div>
+      <div class="nav-item active"><span class="ico">☰</span> 元數據寫入</div>
+      <div class="nav-item"><span class="ico">▣</span> LLM 圖片分析</div>
+      <div class="nav-item"><span class="ico">▤</span> 文件打包</div>
+      <div class="nav-item"><span class="ico">⚙</span> 設置</div>
+    </aside>
+
+    <div class="main">
+      <!-- ========== SCENE: EMPTY ========== -->
+      <section class="scene active" data-scene="empty">
+        <div class="scroll">
+          <div class="page-head">
+            <div>
+              <h2>元數據寫入圖片</h2>
+              <p class="sub">從 CSV 批量寫入 Title / Description / Keywords 到對應圖片文件（ExifTool）。</p>
+            </div>
+          </div>
+
+          
+          <details class="collapse">
+            <summary>ⓘ CSV 格式要求（點擊展開）</summary>
+            <div class="body">
+              必需欄位（順序建議如下，大小寫不敏感）：
+              <span class="code">Filename,Title,Description,Keywords</span>
+              Filename 須與目錄內文件名完全一致；Keywords 以逗號分隔；分隔符使用逗號。
+            </div>
+          </details>
+
+          <div class="empty">
+            <div class="hero-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z"/>
+              </svg>
+            </div>
+            <h3>從選擇圖片目錄開始</h3>
+            <p>選擇包含圖片的文件夾後，再上傳對應的 CSV。系統會自動校驗文件名是否匹配，再批量寫入元數據。</p>
+            <button type="button" class="btn btn-primary btn-lg">選擇圖片目錄</button>
+          </div>
+        </div>
+        <div class="actionbar">
+          <div class="hint">尚未就緒：請先選擇圖片目錄</div>
+          <div class="actions">
+            <button type="button" class="btn btn-default" disabled>重置</button>
+            <button type="button" class="btn btn-primary btn-lg" disabled title="請先完成就緒檢查">開始寫入元數據</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== SCENE: READY ========== -->
+      <section class="scene" data-scene="ready">
+        <div class="scroll">
+          <div class="page-head">
+            <div>
+              <h2>元數據寫入圖片</h2>
+              <p class="sub">從 CSV 批量寫入 Title / Description / Keywords 到對應圖片文件（ExifTool）。</p>
+            </div>
+            <button type="button" class="link-btn">下載 CSV 模板</button>
+          </div>
+
+          
+          <details class="collapse">
+            <summary>ⓘ CSV 格式要求（點擊展開）</summary>
+            <div class="body">
+              <span class="code">Filename,Title,Description,Keywords</span>
+            </div>
+          </details>
+
+          <div class="body-grid">
+            <div>
+              <div class="card">
+                <div class="card-title">
+                  圖片目錄
+                  <span class="badge ok">已就緒</span>
+                </div>
+                <div class="dir-row">
+                  <div class="path-box filled" title="/Users/douzi/Pictures/stock-batch-2026">/Users/douzi/Pictures/stock-batch-2026</div>
+                  <button type="button" class="btn btn-default">更換</button>
+                </div>
+                <div class="meta-line">
+                  <span>媒體文件 <strong>128</strong></span>
+                  <span>支持 jpg / jpeg / png</span>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title">
+                  CSV 文件
+                  <span class="badge ok">解析成功</span>
+                </div>
+                <div class="dropzone" style="padding:16px; display:none;">
+                  <!-- hidden when file selected -->
+                </div>
+                <div class="file-chip">
+                  <span style="width:28px;height:28px;border-radius:6px;background:#fff;border:1px solid #BBF7D0;display:grid;place-items:center;color:var(--success);font-size:11px;font-weight:700;">CSV</span>
+                  <span class="name">image_analysis_export.csv</span>
+                  <span class="size">24 KB · 120 行</span>
+                  <button type="button" class="btn btn-danger-ghost" style="height:28px;padding:0 8px;">移除</button>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title">
+                  數據預覽
+                  <span class="badge warn">2 條缺失</span>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>狀態</th>
+                        <th>Filename</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Keywords</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><span class="tag">匹配</span></td>
+                        <td>IMG_0001.jpg</td>
+                        <td>Sunset over harbor</td>
+                        <td>Golden hour coastal scene…</td>
+                        <td>sunset, harbor, ocean</td>
+                      </tr>
+                      <tr>
+                        <td><span class="tag">匹配</span></td>
+                        <td>IMG_0002.jpg</td>
+                        <td>Mountain trail</td>
+                        <td>Hiker on alpine path…</td>
+                        <td>mountain, hike, nature</td>
+                      </tr>
+                      <tr class="row-miss">
+                        <td><span class="tag miss">缺失</span></td>
+                        <td>IMG_0099.jpg</td>
+                        <td>City night lights</td>
+                        <td>Neon reflections…</td>
+                        <td>city, night</td>
+                      </tr>
+                      <tr class="row-miss">
+                        <td><span class="tag miss">缺失</span></td>
+                        <td>RAW_orphan.cr2</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                      </tr>
+                      <tr>
+                        <td><span class="tag">匹配</span></td>
+                        <td>IMG_0003.png</td>
+                        <td>Studio product</td>
+                        <td>Minimal white backdrop…</td>
+                        <td>product, studio</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="alert warn">
+                  <div class="alert-title">警告（不阻塞寫入時可跳過）</div>
+                  以下 Filename 在目錄中找不到，將被跳過：IMG_0099.jpg、RAW_orphan.cr2
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="card">
+                <div class="card-title">匹配統計</div>
+                <div class="stats">
+                  <div class="stat"><div class="label">目錄媒體</div><div class="value">128</div></div>
+                  <div class="stat"><div class="label">CSV 行數</div><div class="value">120</div></div>
+                  <div class="stat ok"><div class="label">可匹配</div><div class="value">118</div></div>
+                  <div class="stat warn"><div class="label">缺失</div><div class="value">2</div></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title">就緒檢查</div>
+                <ul class="check-list">
+                  <li><span class="check on">✓</span><span>已選擇圖片目錄（128 個媒體）</span></li>
+                  <li><span class="check on">✓</span><span>CSV 表頭與內容合法（120 行）</span></li>
+                  <li><span class="check warn">!</span><span>存在 2 條缺失文件（寫入時將跳過）</span></li>
+                </ul>
+              </div>
+
+              <div class="card">
+                <div class="card-title">寫入說明</div>
+                <p style="font-size:12px;color:var(--text-secondary);line-height:1.6;">
+                  將使用 ExifTool 原地寫入元數據。建議先備份目錄。  
+                  主操作僅在就緒後可點；寫入過程中不可重複提交。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="actionbar">
+          <div class="hint">就緒：將寫入 <strong>118</strong> 條匹配項（跳過 2 條缺失）</div>
+          <div class="actions">
+            <button type="button" class="btn btn-default">重置</button>
+            <button type="button" class="btn btn-primary btn-lg">開始寫入元數據</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== SCENE: WRITING ========== -->
+      <section class="scene" data-scene="writing">
+        <div class="scroll">
+          <div class="page-head">
+            <div>
+              <h2>元數據寫入圖片</h2>
+              <p class="sub">正在寫入，請勿關閉窗口或移除磁盤…</p>
+            </div>
+          </div>
+
+          
+          <div class="card">
+            <div class="card-title">寫入進度</div>
+            <div class="progress-block">
+              <div class="progress-track"><div class="progress-fill"></div></div>
+              <div class="progress-meta">
+                <span>已處理 73 / 118</span>
+                <span>約 62%</span>
+              </div>
+            </div>
+            <div class="meta-line" style="margin-top:14px;">
+              <span>當前：<strong>IMG_0073.jpg</strong></span>
+              <span>成功 71 · 失敗 2</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">即時日誌（可選）</div>
+            <div class="table-wrap" style="max-height:160px;">
+              <table>
+                <thead><tr><th>時間</th><th>文件</th><th>狀態</th></tr></thead>
+                <tbody>
+                  <tr><td>14:02:11</td><td>IMG_0071.jpg</td><td><span class="tag">成功</span></td></tr>
+                  <tr><td>14:02:12</td><td>IMG_0072.jpg</td><td><span class="tag">成功</span></td></tr>
+                  <tr><td>14:02:12</td><td>IMG_locked.jpg</td><td><span class="tag miss">失敗 · 權限不足</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="actionbar">
+          <div class="hint">寫入進行中，主操作已鎖定以防重複提交</div>
+          <div class="actions">
+            <button type="button" class="btn btn-default" disabled>重置</button>
+            <button type="button" class="btn btn-primary btn-lg" disabled>寫入中…</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== SCENE: RESULT ========== -->
+      <section class="scene" data-scene="result">
+        <div class="scroll">
+          <div class="page-head">
+            <div>
+              <h2>元數據寫入圖片</h2>
+              <p class="sub">本次任務已結束，可查看失敗項或重置後繼續下一批。</p>
+            </div>
+          </div>
+
+          
+          <div class="card">
+            <div class="result-hero partial">
+              <div class="big">!</div>
+              <h3>寫入完成（部分失敗）</h3>
+              <p>成功 116 · 失敗 2 · 跳過缺失 2</p>
+            </div>
+            <div class="stats" style="margin-top:8px;">
+              <div class="stat ok"><div class="label">成功</div><div class="value">116</div></div>
+              <div class="stat error"><div class="label">失敗</div><div class="value">2</div></div>
+              <div class="stat warn"><div class="label">跳過</div><div class="value">2</div></div>
+              <div class="stat"><div class="label">總耗時</div><div class="value" style="font-size:16px;">48s</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">失敗明細</div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Filename</th><th>原因</th></tr></thead>
+                <tbody>
+                  <tr><td>IMG_locked.jpg</td><td>Permission denied（文件只讀）</td></tr>
+                  <tr><td>IMG_corrupt.jpg</td><td>ExifTool: Not a valid JPEG</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="alert error" style="margin-top:12px;">
+              <div class="alert-title">建議</div>
+              檢查文件權限與損壞文件後，可僅重試失敗項（實作可選）。
+            </div>
+          </div>
+        </div>
+        <div class="actionbar">
+          <div class="hint">可重置以開始新的目錄 / CSV 任務</div>
+          <div class="actions">
+            <button type="button" class="btn btn-default">僅重試失敗</button>
+            <button type="button" class="btn btn-primary btn-lg">重置並繼續</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <p class="note-footer">
+    <strong>說明：</strong>此 HTML 僅供 UI/UX 評審，不連接真實 IPC。  
+    實作時圖標請改用 <code>@ant-design/icons</code>，顏色走 theme token。
+  </p>
+
+  <script>
+    const buttons = document.querySelectorAll('#sceneSwitch button');
+    const scenes = document.querySelectorAll('.scene');
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const name = btn.dataset.scene;
+        buttons.forEach((b) => b.classList.toggle('active', b === btn));
+        scenes.forEach((s) => s.classList.toggle('active', s.dataset.scene === name));
+      });
+    });
+  </script>
+</body>
+</html>

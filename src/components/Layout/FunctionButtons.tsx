@@ -6,7 +6,7 @@ import {
   FileTextOutlined,
   PictureOutlined,
   SettingOutlined,
-  QuestionCircleOutlined,
+  FileZipOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -26,32 +26,32 @@ const FunctionButtons: React.FC = () => {
     {
       key: 'home',
       icon: <HomeOutlined />,
-      label: '首頁',
+      label: '系統調試',
       path: '/',
     },
     {
       key: 'csv',
       icon: <FileTextOutlined />,
-      label: 'CSV 驗證',
+      label: '元數據寫入',
       path: '/csv-validation',
     },
     {
       key: 'image',
       icon: <PictureOutlined />,
-      label: '圖片分析',
+      label: 'LLM 圖片分析',
       path: '/image-analyze',
+    },
+    {
+      key: 'packaging',
+      icon: <FileZipOutlined />,
+      label: '文件打包',
+      path: '/file-packaging',
     },
     {
       key: 'settings',
       icon: <SettingOutlined />,
       label: '設置',
       path: '/settings',
-    },
-    {
-      key: 'help',
-      icon: <QuestionCircleOutlined />,
-      label: '幫助',
-      path: '/help',
     },
   ];
 

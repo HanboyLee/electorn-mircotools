@@ -96,3 +96,14 @@ graphify-out/
 
 # skills.sh lockfile / installs
 skills-lock.json
+
+# ---------------------------------------------------------------------------
+# Unit tests — local only, do not push to GitHub (project policy)
+# ---------------------------------------------------------------------------
+**/__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+# Optional local manual fixtures (images/CSV for E2E smoke)
+test-fixtures/

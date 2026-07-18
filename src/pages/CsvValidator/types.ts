@@ -39,12 +39,15 @@ export interface CsvRow {
  * CSV文件上傳組件的屬性
  */
 export interface CsvUploadProps {
-  onUpload: (data: any[], headers: string[]) => void;
+  onUpload: (data: any[], headers: string[], fileName?: string) => void;
   onError: (error: Error) => void;
   onProgress: (progress: number) => void;
   progress: number;
   onPreview?: (data: any[]) => void;
   template?: string;
+  onRemove?: () => void;
+  selectedFileName?: string;
+  disabled?: boolean;
 }
 
 /**

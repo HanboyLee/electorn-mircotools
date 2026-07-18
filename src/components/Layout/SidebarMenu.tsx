@@ -7,7 +7,6 @@ import {
   FileTextOutlined,
   PictureOutlined,
   SettingOutlined,
-  QuestionCircleOutlined,
   FileZipOutlined,
 } from '@ant-design/icons';
 
@@ -25,17 +24,17 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({ collapsed, onCollapse }) => {
     {
       key: '/',
       icon: <HomeOutlined />,
-      label: '首頁',
+      label: '系統調試',
     },
     {
       key: '/csv-validation',
       icon: <FileTextOutlined />,
-      label: 'CSV 驗證',
+      label: '元數據寫入',
     },
     {
       key: '/image-analyze',
       icon: <PictureOutlined />,
-      label: '圖片分析',
+      label: 'LLM 圖片分析',
     },
     {
       key: '/file-packaging',
@@ -46,11 +45,6 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({ collapsed, onCollapse }) => {
       key: '/settings',
       icon: <SettingOutlined />,
       label: '設置',
-    },
-    {
-      key: '/help',
-      icon: <QuestionCircleOutlined />,
-      label: '幫助',
     },
   ];
 
