@@ -1,0 +1,70 @@
+%% 設置頁 · Tabs + 分 Tab 獨立保存
+%% 可在支持 Mermaid 的編輯器 / GitHub 中預覽
+
+flowchart TB
+  subgraph Entry["進入"]
+    Sidebar["側欄 · 設置"]
+    Route["/settings"]
+    Sidebar --> Route
+  end
+
+  subgraph Shell["設置頁殼層"]
+    Header["頁頭：標題 + 說明"]
+    Tabs["antd Tabs"]
+    Header --> Tabs
+  end
+
+  Route --> Shell
+
+  subgraph TabList["三個 Tab"]
+    T1["外觀與語言"]
+    T2["AI 服務"]
+    T3["關於與更新"]
+  end
+
+  Tabs --> T1
+  Tabs --> T2
+  Tabs --> T3
+
+  subgraph Appearance["Tab 外觀 · 獨立 Form"]
+    AFields["language + theme 預覽卡"]
+    ADirty["dirtyAppearance"]
+    ABar["重置本頁 / 保存本頁"]
+    ASave["updateSettings subset A"]
+    AFields --> ADirty
+    ADirty --> ABar
+    ABar --> ASave
+  end
+
+  subgraph API["Tab AI · 獨立 Form"]
+    BFields["provider + keys + model"]
+    BTest["測試連接（即時）"]
+    BDirty["dirtyApi"]
+    BBar["重置本頁 / 保存本頁"]
+    BSave["updateSettings subset B"]
+    BFields --> BDirty
+    BDirty --> BBar
+    BBar --> BSave
+    BTest -.->|"T1: 可寫 savedModels"| Store[(electron-store)]
+  end
+
+  subgraph About["Tab 關於 · 無 Form 保存"]
+    Ver["版本信息"]
+    Check["檢查更新"]
+    Update["立即更新"]
+    Progress["進度 / 重試"]
+  end
+
+  T1 --> Appearance
+  T2 --> API
+  T3 --> About
+
+  ASave --> Store
+  BSave --> Store
+
+  subgraph Isolation["隔離規則"]
+    R1["保存 A 不寫 B 字段"]
+    R2["保存 B 不寫 A 字段"]
+    R3["切 Tab 默認保留各 Form 草稿"]
+    R4["路由離開：任一 dirty 可攔截"]
+  end

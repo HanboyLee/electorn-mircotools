@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>設置 · UI 原型（Tabs · 分 Tab 保存）</title>
+  <style>
+    :root {
+      --primary: #4B9FE1;
+      --primary-hover: #3A8FD0;
+      --primary-soft: #E8F3FF;
+      --layout-bg: #F0F4F8;
+      --card: #FFFFFF;
+      --text: #1F2937;
+      --text-secondary: #6B7280;
+      --border: #E5E7EB;
+      --success: #16A34A;
+      --success-bg: #F0FDF4;
+      --warning: #D97706;
+      --warning-bg: #FFFBEB;
+      --error: #DC2626;
+      --error-bg: #FEF2F2;
+      --muted: #F9FAFB;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --sidebar-w: 200px;
+      --titlebar-h: 32px;
+      --actionbar-h: 60px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: #1a1a1a;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    .doc-header {
+      width: min(1180px, 100%);
+      color: #e5e7eb;
+      margin-bottom: 16px;
+    }
+    .doc-header h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    .doc-header p { font-size: 13px; color: #9ca3af; line-height: 1.5; }
+    .doc-header code {
+      background: #374151; padding: 1px 6px; border-radius: 4px; font-size: 12px;
+    }
+
+    .scene-switch {
+      width: min(1180px, 100%);
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .scene-switch button {
+      border: 1px solid #4b5563;
+      background: #111827;
+      color: #e5e7eb;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+    .scene-switch button:hover { border-color: var(--primary); color: #fff; }
+    .scene-switch button.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      height: 720px;
+      background: var(--layout-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,.45);
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      grid-template-rows: var(--titlebar-h) 1fr;
+    }
+
+    .titlebar {
+      grid-column: 1 / -1;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 13px;
+    }
+    .titlebar .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+    .titlebar .dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+    }
+    .win-btns { display: flex; gap: 4px; color: var(--text-secondary); font-size: 12px; }
+    .win-btns span {
+      width: 28px; height: 24px; display: grid; place-items: center; border-radius: 4px;
+    }
+
+    .sidebar {
+      background: #fff;
+      border-right: 1px solid var(--border);
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .nav-item.active {
+      background: var(--primary-soft);
+      color: #1668dc;
+      font-weight: 600;
+    }
+    .nav-item .ico { width: 16px; text-align: center; opacity: .75; font-size: 12px; }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      background: var(--layout-bg);
+    }
+
+    .settings-page {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      padding: 16px 20px 0;
+    }
+
+    .page-head h2 {
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .page-head .sub {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    /* Tabs */
+    .tabs-bar {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .tab-btn {
+      position: relative;
+      border: none;
+      background: transparent;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color .15s, border-color .15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--primary);
+      font-weight: 600;
+      border-bottom-color: var(--primary);
+    }
+    .tab-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--warning);
+      display: none;
+    }
+    .tab-btn.dirty .tab-dot { display: inline-block; }
+
+    .tab-panels {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .tab-panel {
+      flex: 1;
+      min-height: 0;
+      display: none;
+      flex-direction: column;
+    }
+    .tab-panel.active { display: flex; }
+
+    .scroll {
+      flex: 1;
+      overflow: auto;
+      padding: 16px 0 calc(var(--actionbar-h) + 12px);
+    }
+    .tab-panel.no-save .scroll {
+      padding-bottom: 16px;
+    }
+
+    .section-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      max-width: 720px;
+    }
+
+    .field { margin-bottom: 16px; }
+    .field:last-child { margin-bottom: 0; }
+    .label {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .help {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .select, .input {
+      width: 100%;
+      height: 36px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 13px;
+      font-family: inherit;
+      background: #fff;
+      color: var(--text);
+    }
+    .input-group { display: flex; align-items: stretch; }
+    .input-group .input {
+      border-radius: 8px 0 0 8px;
+      border-right: none;
+      flex: 1;
+    }
+    .input-group .btn-addon {
+      border: 1px solid var(--border);
+      border-radius: 0 8px 8px 0;
+      background: var(--muted);
+      padding: 0 14px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .input-group .btn-addon:hover { background: var(--primary-soft); color: #1668dc; }
+
+    .segmented {
+      display: inline-flex;
+      background: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .segmented button {
+      border: none;
+      background: transparent;
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--text-secondary);
+    }
+    .segmented button.active {
+      background: #fff;
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: var(--shadow);
+    }
+
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .theme-card {
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      background: #fff;
+      text-align: left;
+      font-family: inherit;
+      padding: 0;
+      position: relative;
+      transition: border-color .15s;
+    }
+    .theme-card:hover { border-color: #93c5fd; }
+    .theme-card.selected {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+    .theme-card .check {
+      position: absolute;
+      top: 6px; right: 6px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      font-size: 11px;
+      display: none;
+      place-items: center;
+    }
+    .theme-card.selected .check { display: grid; }
+    .theme-preview {
+      height: 64px;
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+    .theme-preview .tb { grid-column: 1 / -1; height: 12px; }
+    .theme-card .name { padding: 8px 10px; font-size: 12px; font-weight: 500; }
+
+    .theme-light .tb { background: #fff; border-bottom: 1px solid #e5e7eb; }
+    .theme-light .sb { background: #f3f4f6; }
+    .theme-light .ct { background: #f0f4f8; }
+    .theme-dark .tb { background: #1f1f1f; }
+    .theme-dark .sb { background: #141414; }
+    .theme-dark .ct { background: #0a0a0a; }
+    .theme-dark { background: #1a1a1a; }
+    .theme-dark .name { color: #e5e7eb; }
+    .theme-blue .tb { background: #e6f4ff; border-bottom: 1px solid #bae0ff; }
+    .theme-blue .sb { background: #f0f7ff; }
+    .theme-blue .ct { background: #f5f9ff; }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .badge.ok { background: var(--success-bg); color: var(--success); }
+    .badge.muted { background: var(--muted); color: var(--text-secondary); border: 1px solid var(--border); }
+    .badge.warn { background: var(--warning-bg); color: var(--warning); }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      max-width: 720px;
+    }
+
+    .alert {
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .alert.success { background: var(--success-bg); color: #166534; border: 1px solid #bbf7d0; }
+    .alert.error { background: var(--error-bg); color: #991b1b; border: 1px solid #fecaca; }
+    .alert.info { background: var(--primary-soft); color: #1e40af; border: 1px solid #bfdbfe; }
+
+    .info-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+      min-height: 28px;
+      font-size: 13px;
+    }
+    .info-row .k { color: var(--text-secondary); min-width: 72px; }
+    .info-row .v { font-weight: 600; }
+
+    .notes {
+      background: var(--muted);
+      border-radius: 8px;
+      padding: 12px;
+      margin: 8px 0 16px;
+      max-height: 100px;
+      overflow: auto;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+    }
+
+    .btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: none;
+      border-radius: 8px;
+      padding: 0 14px;
+      height: 36px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background .15s, opacity .15s;
+    }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-default {
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-default:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+
+    .model-detail {
+      background: var(--muted);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.6;
+      margin-top: 10px;
+    }
+    .model-detail span { color: var(--text-secondary); }
+
+    /* Per-tab save bar */
+    .tab-save-bar {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: var(--actionbar-h);
+      background: rgba(255,255,255,.94);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px 0 0;
+      max-width: 720px;
+      box-shadow: 0 -4px 12px rgba(0,0,0,.04);
+    }
+    .tab-save-bar .hint {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .tab-save-bar .actions { display: flex; gap: 8px; }
+    .tab-panel.no-save .tab-save-bar { display: none; }
+
+    .toast {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111827;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s;
+      z-index: 99;
+    }
+    .toast.show { opacity: 1; }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 900px) {
+      .app { height: auto; min-height: 720px; }
+      .theme-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="doc-header">
+    <h1>設置頁 · UI 原型（Tabs · 分 Tab 獨立保存）</h1>
+    <p>
+      對應 <code>docs/Settings/ui-ux-review.md</code>。
+      每個可配置 Tab 底部有自己的「重置 / 保存」；「關於與更新」僅操作、無保存欄。
+      切換 Tab 時草稿各自保留（模擬 destroyInactiveTabPane=false）。
+    </p>
+  </div>
+
+  <div class="scene-switch" id="sceneSwitch">
+    <button type="button" data-scene="appearance" class="active">1 · 外觀 Tab</button>
+    <button type="button" data-scene="api-empty">2 · AI · 未配置</button>
+    <button type="button" data-scene="api-ok">3 · AI · 已連通</button>
+    <button type="button" data-scene="about">4 · 關於（無保存）</button>
+    <button type="button" data-scene="dirty-iso">5 · 分 Tab 未保存隔離</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="app">
+    <div class="titlebar">
+      <div class="brand"><span class="dot"></span> metadata-app</div>
+      <div class="win-btns"><span>─</span><span>□</span><span>×</span></div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="nav-item"><span class="ico">⌂</span> 首頁</div>
+      <div class="nav-item"><span class="ico">▣</span> 打包</div>
+      <div class="nav-item"><span class="ico">✎</span> 元數據寫入</div>
+      <div class="nav-item"><span class="ico">◎</span> LLM 分析</div>
+      <div class="nav-item active"><span class="ico">⚙</span> 設置</div>
+    </aside>
+
+    <div class="main">
+      <div class="settings-page">
+        <div class="page-head">
+          <h2>⚙ 設置</h2>
+        </div>
+
+        <div class="tabs-bar" id="tabsBar">
+          <button type="button" class="tab-btn active" data-tab="appearance" id="tabBtnAppearance">
+            外觀與語言 <span class="tab-dot" title="未保存"></span>
+          </button>
+          <button type="button" class="tab-btn" data-tab="api" id="tabBtnApi">
+            AI 服務 <span class="tab-dot" title="未保存"></span>
+          </button>
+          <button type="button" class="tab-btn" data-tab="about" id="tabBtnAbout">
+            關於與更新
+          </button>
+        </div>
+
+        <div class="tab-panels">
+          <!-- Appearance -->
+          <div class="tab-panel active" id="panel-appearance" data-tab="appearance">
+            <div class="scroll">
+              <p class="section-desc">調整界面語言與主題。僅保存本頁時寫入 language / theme，不影響 AI 設置。</p>
+              <div class="card">
+                <div class="field">
+                  <label class="label">界面語言</label>
+                  <select class="select" id="langSelect">
+                    <option value="zh_TW">繁體中文</option>
+                    <option value="zh_CN">简体中文</option>
+                    <option value="en">English</option>
+                    <option value="ja">日本語</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="label">界面主題</label>
+                  <div class="theme-grid">
+                    <button type="button" class="theme-card theme-light" data-theme="light">
+                      <span class="check">✓</span>
+                      <div class="theme-preview"><div class="tb"></div><div class="sb"></div><div class="ct"></div></div>
+                      <div class="name">白色風格</div>
+                    </button>
+                    <button type="button" class="theme-card theme-dark" data-theme="dark">
+                      <span class="check">✓</span>
+                      <div class="theme-preview"><div class="tb"></div><div class="sb"></div><div class="ct"></div></div>
+                      <div class="name">黑色風格</div>
+                    </button>
+                    <button type="button" class="theme-card theme-blue selected" data-theme="blue">
+                      <span class="check">✓</span>
+                      <div class="theme-preview"><div class="tb"></div><div class="sb"></div><div class="ct"></div></div>
+                      <div class="name">藍色風格</div>
+                    </button>
+                  </div>
+                  <p class="help">點選預覽卡後，請按本頁「保存本頁設置」寫入。</p>
+                </div>
+              </div>
+            </div>
+            <div class="tab-save-bar">
+              <span class="hint" id="hintAppearance"></span>
+              <div class="actions">
+                <button type="button" class="btn btn-default hidden" id="resetAppearance">重置本頁</button>
+                <button type="button" class="btn btn-primary" id="saveAppearance">保存本頁設置</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- API -->
+          <div class="tab-panel" id="panel-api" data-tab="api">
+            <div class="scroll">
+              <p class="section-desc">配置 LLM 分析用的 API。保存本頁只寫入 API 相關字段，不影響外觀。</p>
+              <div class="status-line">
+                <span class="badge muted" id="apiBadge">未配置</span>
+                <span class="help" style="margin:0" id="apiBadgeHint">請填寫 API 密鑰並測試</span>
+              </div>
+              <div class="card">
+                <div class="field">
+                  <label class="label">API 提供者</label>
+                  <div class="segmented" id="providerSeg">
+                    <button type="button" class="active" data-p="openai">OpenAI</button>
+                    <button type="button" data-p="openrouter">OpenRouter</button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="label" id="keyLabel">OpenAI API 密鑰</label>
+                  <div class="input-group">
+                    <input class="input" type="password" id="keyInput" placeholder="sk-..." />
+                    <button type="button" class="btn-addon" id="testBtn">測試連接</button>
+                  </div>
+                  <p class="help" id="keyHelp">可選。密鑰僅保存在本機；需點「保存本頁設置」才會持久化。</p>
+                </div>
+                <div id="testResult" class="hidden" style="margin-bottom:12px"></div>
+                <div class="field hidden" id="modelField">
+                  <label class="label">選擇模型</label>
+                  <select class="select" id="modelSelect">
+                    <option>請先測試連接</option>
+                  </select>
+                  <div class="model-detail hidden" id="modelDetail"></div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-save-bar">
+              <span class="hint" id="hintApi"></span>
+              <div class="actions">
+                <button type="button" class="btn btn-default hidden" id="resetApi">重置本頁</button>
+                <button type="button" class="btn btn-primary" id="saveApi">保存本頁設置</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- About -->
+          <div class="tab-panel no-save" id="panel-about" data-tab="about">
+            <div class="scroll">
+              <p class="section-desc">查看版本並更新應用。此分頁無需保存，操作會立即執行。</p>
+              <div class="card">
+                <div class="info-row">
+                  <span class="k">當前版本</span>
+                  <span class="v">v1.3.5</span>
+                </div>
+                <div class="info-row">
+                  <span class="k">最新版本</span>
+                  <span class="v" style="color:var(--warning)">v1.4.0（有可用更新）</span>
+                </div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">更新說明</div>
+                <div class="notes">- 設置頁改為 Tabs + 分頁獨立保存
+- 修復部分平台下載鏈接
+- 性能與穩定性改進</div>
+                <div class="btn-row">
+                  <button type="button" class="btn btn-default">檢查更新</button>
+                  <button type="button" class="btn btn-primary">立即更新</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Simulated persisted store vs draft per tab
+    const store = {
+      language: 'zh_TW',
+      theme: 'blue',
+      apiProvider: 'openai',
+      openaiApiKey: '',
+      openrouterApiKey: '',
+      selectedModel: '',
+    };
+
+    let draftAppearance = { language: store.language, theme: store.theme };
+    let draftApi = {
+      apiProvider: store.apiProvider,
+      key: '',
+      selectedModel: store.selectedModel,
+      connected: false,
+    };
+
+    const toastEl = document.getElementById('toast');
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    function isAppearanceDirty() {
+      return draftAppearance.language !== store.language || draftAppearance.theme !== store.theme;
+    }
+    function isApiDirty() {
+      const storedKey = draftApi.apiProvider === 'openai' ? store.openaiApiKey : store.openrouterApiKey;
+      return (
+        draftApi.apiProvider !== store.apiProvider ||
+        draftApi.key !== storedKey ||
+        draftApi.selectedModel !== (store.selectedModel || '')
+      );
+    }
+
+    function refreshDirtyUI() {
+      const a = isAppearanceDirty();
+      const b = isApiDirty();
+      document.getElementById('tabBtnAppearance').classList.toggle('dirty', a);
+      document.getElementById('tabBtnApi').classList.toggle('dirty', b);
+      document.getElementById('resetAppearance').classList.toggle('hidden', !a);
+      document.getElementById('resetApi').classList.toggle('hidden', !b);
+      document.getElementById('hintAppearance').textContent = a
+        ? '本頁有未保存更改'
+        : '';
+      document.getElementById('hintApi').textContent = b
+        ? '本頁有未保存更改'
+        : '';
+    }
+
+    function showTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+      });
+      document.querySelectorAll('.tab-panel').forEach((panel) => {
+        panel.classList.toggle('active', panel.dataset.tab === tab);
+      });
+    }
+
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => showTab(btn.dataset.tab));
+    });
+
+    // Appearance interactions
+    document.getElementById('langSelect').addEventListener('change', (e) => {
+      draftAppearance.language = e.target.value;
+      refreshDirtyUI();
+    });
+    document.querySelectorAll('.theme-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.theme-card').forEach((c) => c.classList.remove('selected'));
+        card.classList.add('selected');
+        draftAppearance.theme = card.dataset.theme;
+        refreshDirtyUI();
+      });
+    });
+    document.getElementById('saveAppearance').addEventListener('click', () => {
+      store.language = draftAppearance.language;
+      store.theme = draftAppearance.theme;
+      refreshDirtyUI();
+      toast('外觀設置已保存（未寫入 AI 字段）');
+    });
+    document.getElementById('resetAppearance').addEventListener('click', () => {
+      draftAppearance = { language: store.language, theme: store.theme };
+      document.getElementById('langSelect').value = store.language;
+      document.querySelectorAll('.theme-card').forEach((c) => {
+        c.classList.toggle('selected', c.dataset.theme === store.theme);
+      });
+      refreshDirtyUI();
+      toast('已重置本頁外觀草稿');
+    });
+
+    // API interactions
+    document.querySelectorAll('#providerSeg button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        draftApi.apiProvider = btn.dataset.p;
+        document.querySelectorAll('#providerSeg button').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (draftApi.apiProvider === 'openai') {
+          document.getElementById('keyLabel').textContent = 'OpenAI API 密鑰';
+          document.getElementById('modelField').classList.add('hidden');
+        } else {
+          document.getElementById('keyLabel').textContent = 'OpenRouter API 密鑰';
+          document.getElementById('modelField').classList.remove('hidden');
+        }
+        refreshDirtyUI();
+      });
+    });
+    document.getElementById('keyInput').addEventListener('input', (e) => {
+      draftApi.key = e.target.value;
+      refreshDirtyUI();
+    });
+    document.getElementById('testBtn').addEventListener('click', () => {
+      if (!draftApi.key.trim()) {
+        document.getElementById('testResult').className = '';
+        document.getElementById('testResult').innerHTML = '<div class="alert error">請先輸入 API 密鑰</div>';
+        return;
+      }
+      draftApi.connected = true;
+      document.getElementById('apiBadge').className = 'badge ok';
+      document.getElementById('apiBadge').textContent = '連接正常';
+      document.getElementById('apiBadgeHint').textContent = '模型列表已緩存（T1）；請保存以持久化密鑰與選中模型';
+      document.getElementById('testResult').className = '';
+      document.getElementById('testResult').innerHTML = '<div class="alert success">✓ 連接正常。模型列表已暫存；密鑰需「保存本頁設置」才寫入本機。</div>';
+      if (draftApi.apiProvider === 'openrouter') {
+        document.getElementById('modelField').classList.remove('hidden');
+        document.getElementById('modelSelect').innerHTML = '<option value="claude">anthropic/claude-3.5-sonnet</option>';
+        draftApi.selectedModel = 'claude';
+        document.getElementById('modelDetail').classList.remove('hidden');
+        document.getElementById('modelDetail').innerHTML = '<div><strong>模型：</strong><span> Claude 3.5 Sonnet</span></div>';
+      }
+      refreshDirtyUI();
+      toast('測試成功（未等同於保存密鑰）');
+    });
+    document.getElementById('saveApi').addEventListener('click', () => {
+      store.apiProvider = draftApi.apiProvider;
+      if (draftApi.apiProvider === 'openai') store.openaiApiKey = draftApi.key;
+      else store.openrouterApiKey = draftApi.key;
+      store.selectedModel = draftApi.selectedModel;
+      refreshDirtyUI();
+      toast('AI 設置已保存（未寫入外觀字段）');
+    });
+    document.getElementById('resetApi').addEventListener('click', () => {
+      draftApi.apiProvider = store.apiProvider;
+      draftApi.key = store.apiProvider === 'openai' ? store.openaiApiKey : store.openrouterApiKey;
+      draftApi.selectedModel = store.selectedModel || '';
+      document.getElementById('keyInput').value = draftApi.key;
+      document.querySelectorAll('#providerSeg button').forEach((b) => {
+        b.classList.toggle('active', b.dataset.p === draftApi.apiProvider);
+      });
+      refreshDirtyUI();
+      toast('已重置本頁 AI 草稿');
+    });
+
+    // Scenes
+    document.getElementById('sceneSwitch').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-scene]');
+      if (!btn) return;
+      document.querySelectorAll('#sceneSwitch button').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const scene = btn.dataset.scene;
+
+      // reset drafts to store for clean demos
+      draftAppearance = { language: store.language, theme: store.theme };
+      draftApi = {
+        apiProvider: store.apiProvider,
+        key: store.apiProvider === 'openai' ? store.openaiApiKey : store.openrouterApiKey,
+        selectedModel: store.selectedModel || '',
+        connected: false,
+      };
+      document.getElementById('langSelect').value = draftAppearance.language;
+      document.querySelectorAll('.theme-card').forEach((c) => {
+        c.classList.toggle('selected', c.dataset.theme === draftAppearance.theme);
+      });
+      document.getElementById('keyInput').value = draftApi.key;
+      document.getElementById('testResult').className = 'hidden';
+      document.getElementById('apiBadge').className = 'badge muted';
+      document.getElementById('apiBadge').textContent = '未配置';
+      document.getElementById('apiBadgeHint').textContent = '請填寫 API 密鑰並測試';
+      document.getElementById('modelField').classList.add('hidden');
+
+      if (scene === 'appearance') {
+        showTab('appearance');
+      } else if (scene === 'api-empty') {
+        showTab('api');
+      } else if (scene === 'api-ok') {
+        showTab('api');
+        draftApi.apiProvider = 'openrouter';
+        draftApi.key = 'sk-or-v1-demo';
+        draftApi.selectedModel = 'claude';
+        draftApi.connected = true;
+        store.apiProvider = 'openrouter';
+        store.openrouterApiKey = 'sk-or-v1-demo';
+        store.selectedModel = 'claude';
+        document.getElementById('keyInput').value = draftApi.key;
+        document.querySelectorAll('#providerSeg button').forEach((b) => {
+          b.classList.toggle('active', b.dataset.p === 'openrouter');
+        });
+        document.getElementById('keyLabel').textContent = 'OpenRouter API 密鑰';
+        document.getElementById('apiBadge').className = 'badge ok';
+        document.getElementById('apiBadge').textContent = '連接正常';
+        document.getElementById('apiBadgeHint').textContent = '已保存並可用';
+        document.getElementById('testResult').className = '';
+        document.getElementById('testResult').innerHTML = '<div class="alert success">✓ OpenRouter API 連接正常</div>';
+        document.getElementById('modelField').classList.remove('hidden');
+        document.getElementById('modelSelect').innerHTML = '<option>anthropic/claude-3.5-sonnet</option>';
+        document.getElementById('modelDetail').classList.remove('hidden');
+        document.getElementById('modelDetail').innerHTML = '<div><strong>模型：</strong><span> Claude 3.5 Sonnet</span></div>';
+      } else if (scene === 'about') {
+        showTab('about');
+      } else if (scene === 'dirty-iso') {
+        // both tabs dirty independently
+        draftAppearance.theme = 'dark';
+        document.querySelectorAll('.theme-card').forEach((c) => {
+          c.classList.toggle('selected', c.dataset.theme === 'dark');
+        });
+        draftApi.key = 'sk-draft-not-saved';
+        document.getElementById('keyInput').value = draftApi.key;
+        showTab('appearance');
+        toast('示範：外觀與 AI 同時有草稿；保存其一不影響另一');
+      }
+      refreshDirtyUI();
+    });
+
+    refreshDirtyUI();
+  </script>
+</body>
+</html>

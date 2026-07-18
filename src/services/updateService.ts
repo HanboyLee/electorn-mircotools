@@ -14,7 +14,13 @@ import {
   UpdateProgress,
   UpdateVersionInfo,
 } from '@/types/update';
-import { isVersionNewer, pickReleaseAsset, normalizeVersion, GitHubReleaseAsset } from './updateVersion';
+import {
+  isVersionNewer,
+  pickReleaseAsset,
+  normalizeVersion,
+  GitHubReleaseAsset,
+  resolveReleaseNotes,
+} from './updateVersion';
 
 /** 与 solo-trunk-cicd / 远程 origin 一致 */
 const GITHUB_OWNER = 'HanboyLee';
@@ -24,6 +30,11 @@ const USER_AGENT = 'metadata-app-updater';
 const STARTUP_CHECK_DELAY_MS = 5000;
 const REQUEST_TIMEOUT_MS = 20000;
 const MAX_REDIRECTS = 8;
+
+function changelogRawUrl(version: string): string {
+  const tag = `v${normalizeVersion(version)}`;
+  return `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${tag}/CHANGELOG.md`;
+}
 
 interface GitHubReleaseResponse {
   tag_name?: string;
@@ -116,13 +127,17 @@ export class UpdateService extends BaseService {
       const hasUpdate = isVersionNewer(latestVersion, currentVersion);
       const assets = release.assets ?? [];
       const asset = hasUpdate ? pickReleaseAsset(assets, process.platform) : null;
+      const releaseNotes = await this.resolveReleaseNotesForVersion(
+        release.body,
+        latestVersion
+      );
 
       const result: UpdateCheckResult = {
         success: true,
         currentVersion,
         latestVersion,
         hasUpdate,
-        releaseNotes: release.body ?? null,
+        releaseNotes,
         downloadUrl: asset?.browser_download_url ?? null,
         assetName: asset?.name ?? null,
         // 有新版本但没有本平台包时，检查仍成功，但不可更新
@@ -240,6 +255,25 @@ export class UpdateService extends BaseService {
       'X-GitHub-Api-Version': '2022-11-28',
     });
     return JSON.parse(body) as GitHubReleaseResponse;
+  }
+
+  /**
+   * Release body 若仅为 GitHub 自动生成的 compare 链接，则回退拉取 tag 上的 CHANGELOG.md 对应版本段。
+   */
+  private async resolveReleaseNotesForVersion(
+    releaseBody: string | null | undefined,
+    version: string
+  ): Promise<string | null> {
+    let changelog: string | null = null;
+    try {
+      changelog = await this.httpGetText(changelogRawUrl(version), {
+        'User-Agent': USER_AGENT,
+        Accept: 'text/plain',
+      });
+    } catch (error) {
+      console.warn('[UpdateService] fetch CHANGELOG.md failed:', error);
+    }
+    return resolveReleaseNotes(releaseBody, changelog, version);
   }
 
   private httpGetText(

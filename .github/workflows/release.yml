@@ -105,13 +105,46 @@ jobs:
         shell: bash
         run: find release-assets -type f | sort
 
+      # 从 CHANGELOG.md 截取本版本段落作为 Release 正文（勿仅依赖 generate_release_notes，
+      # 否则常只剩 “Full Changelog: compare url”，应用内「更新说明」无实质内容）
+      - name: Build release notes from CHANGELOG.md
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.meta.outputs.tag }}"
+          VER="${TAG#v}"
+          NOTES_FILE=release-notes.md
+          if [ ! -f CHANGELOG.md ]; then
+            echo "CHANGELOG.md missing" >&2
+            echo "Release ${TAG}" > "$NOTES_FILE"
+            echo "path=${NOTES_FILE}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python3 - "$VER" "$NOTES_FILE" <<'PY'
+          import re, sys
+          ver, out = sys.argv[1], sys.argv[2]
+          text = open("CHANGELOG.md", encoding="utf-8").read()
+          # ## [1.3.5] or ## [1.3.5] - 2026-07-18 ... until next ##
+          pat = re.compile(
+              rf"(^##\s*\[{re.escape(ver)}\].*?)(?=^##\s|\Z)",
+              re.M | re.S,
+          )
+          m = pat.search(text)
+          body = (m.group(1).strip() if m else "") or f"Release v{ver}\n\n（CHANGELOG.md 中未找到对应版本段）"
+          open(out, "w", encoding="utf-8").write(body + "\n")
+          print(body[:500])
+          PY
+          echo "path=${NOTES_FILE}" >> "$GITHUB_OUTPUT"
+
       - name: Create / update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
           name: ${{ steps.meta.outputs.tag }}
           draft: ${{ steps.meta.outputs.is_tag_push != 'true' }}
-          generate_release_notes: true
+          body_path: ${{ steps.notes.outputs.path }}
+          generate_release_notes: false
           # Windows: setup.exe / nupkg；macOS: Forge zip（.app 压缩包）
           files: |
             release-assets/**/*.exe

@@ -10,7 +10,8 @@ import { runUpdateFlow } from '@/components/UpdateFlow/runUpdateFlow';
 const { Text, Paragraph } = Typography;
 
 /**
- * 设置页「关于与更新」：检查更新；有新版本时才显示「立即更新」
+ * 設置頁「關於與更新」：檢查更新；有新版本時才顯示「立即更新」。
+ * 本 Tab 無表單保存欄。
  */
 const AboutUpdateSettings: React.FC = () => {
   const { token } = theme.useToken();
@@ -30,27 +31,28 @@ const AboutUpdateSettings: React.FC = () => {
   } = useAppUpdate();
 
   const handleCheck = async () => {
-    const result = await checkForUpdates();
+    // 頁內已展示版本與更新按鈕，不開全局頂部橫幅（避免重複）
+    const result = await checkForUpdates({ showBanner: false });
     if (!result) {
-      message.error('检查更新失败');
+      message.error('檢查更新失敗');
       return;
     }
     if (!result.success) {
-      message.error(result.error || '检查更新失败，请稍后重试');
+      message.error(result.error || '檢查更新失敗，請稍後重試');
       return;
     }
     if (result.hasUpdate && result.downloadUrl) {
-      message.info(`发现新版本 v${result.latestVersion}，可点击「立即更新」`);
+      message.info(`發現新版本 v${result.latestVersion}，可點擊「立即更新」`);
     } else if (result.hasUpdate && !result.downloadUrl) {
-      message.warning(result.error || '发现新版本，但暂无当前平台安装包');
+      message.warning(result.error || '發現新版本，但暫無當前平台安裝包');
     } else {
-      message.success('当前已是最新版本');
+      message.success('當前已是最新版本');
     }
   };
 
   const handleUpdate = () => {
     if (!canUpdate) {
-      message.warning('当前没有可安装的更新');
+      message.warning('當前沒有可安裝的更新');
       return;
     }
     void runUpdateFlow({
@@ -76,10 +78,10 @@ const AboutUpdateSettings: React.FC = () => {
   return (
     <Wrap>
       <Space align="start" size={12} style={{ marginBottom: 16 }}>
-        <InfoCircleOutlined style={{ fontSize: 20, marginTop: 2 }} />
+        <InfoCircleOutlined style={{ fontSize: 20, marginTop: 2, color: token.colorPrimary }} />
         <div>
           <Text strong style={{ fontSize: 15 }}>
-            关于与更新
+            關於與更新
           </Text>
           <Paragraph type="secondary" style={{ marginBottom: 0, marginTop: 4 }}>
             {getSettingsIntro()}
@@ -88,7 +90,7 @@ const AboutUpdateSettings: React.FC = () => {
       </Space>
 
       <InfoRow>
-        <Text type="secondary">当前版本</Text>
+        <Text type="secondary">當前版本</Text>
         <Text strong>v{currentVersion || '—'}</Text>
       </InfoRow>
 
@@ -105,9 +107,9 @@ const AboutUpdateSettings: React.FC = () => {
       {canUpdate && checkResult?.releaseNotes && (
         <NotesBox style={{ background: token.colorFillAlter }}>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            更新说明
+            更新說明
           </Text>
-          <NotesText>{checkResult.releaseNotes.slice(0, 800)}</NotesText>
+          <NotesText>{checkResult.releaseNotes.slice(0, 4000)}</NotesText>
         </NotesBox>
       )}
 
@@ -127,7 +129,7 @@ const AboutUpdateSettings: React.FC = () => {
           onClick={handleCheck}
           disabled={downloading}
         >
-          检查更新
+          檢查更新
         </Button>
         {canUpdate && (
           <Button

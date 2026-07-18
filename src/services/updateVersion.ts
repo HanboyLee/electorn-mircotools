@@ -69,3 +69,71 @@ export function pickReleaseAsset(
 
   return null;
 }
+
+/**
+ * GitHub「自动生成 release notes」常只有一行 Full Changelog 对比链接，无实质变更说明。
+ * 此类正文应回退到 CHANGELOG.md 对应版本段。
+ */
+export function isSparseReleaseNotes(body: string | null | undefined): boolean {
+  if (body == null) return true;
+  const cleaned = body
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/\*+/g, '')
+    .replace(/Full\s*Changelog\s*:?/gi, '')
+    .replace(/[#>\-|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned.length < 8;
+}
+
+/**
+ * 从 Keep a Changelog 风格的 CHANGELOG.md 截取指定版本段（含标题行）
+ * 匹配 `## [1.3.5]` / `## [1.3.5] - 2026-07-18` 等到下一 `## ` 标题前。
+ */
+export function extractChangelogSection(markdown: string, version: string): string | null {
+  if (!markdown?.trim()) return null;
+  const ver = normalizeVersion(version);
+  if (!ver) return null;
+
+  const escaped = ver.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const headerRe = new RegExp(`^##\\s*\\[${escaped}\\](?:\\s|$)`);
+  const lines = markdown.split(/\r?\n/);
+  let start = -1;
+  for (let i = 0; i < lines.length; i += 1) {
+    if (headerRe.test(lines[i])) {
+      start = i;
+      break;
+    }
+  }
+  if (start < 0) return null;
+
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i += 1) {
+    if (/^##\s+/.test(lines[i])) {
+      end = i;
+      break;
+    }
+  }
+
+  const section = lines.slice(start, end).join('\n').trim();
+  return section || null;
+}
+
+/**
+ * 优先用有实质内容的 Release body；否则用 CHANGELOG 版本段。
+ */
+export function resolveReleaseNotes(
+  releaseBody: string | null | undefined,
+  changelogMarkdown: string | null | undefined,
+  version: string
+): string | null {
+  if (!isSparseReleaseNotes(releaseBody) && releaseBody) {
+    return releaseBody.trim();
+  }
+  if (changelogMarkdown) {
+    const section = extractChangelogSection(changelogMarkdown, version);
+    if (section) return section;
+  }
+  const fallback = releaseBody?.trim();
+  return fallback || null;
+}

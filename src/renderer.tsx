@@ -38,7 +38,7 @@ import CsvValidation from './pages/CsvValidator';
 import ImageAnalyze from './pages/AnalyzeByImage';
 import FilePackaging from './pages/FilePackaging';
 import { themes } from './themes';
-import { useSettingsStore } from '@/hooks/SettingsStore';
+import { SettingsProvider, useSettingsStore } from '@/hooks/SettingsStore';
 import { GlobalStyle } from './themes/GlobalStyle';
 import EnhancedScrollbarStyle from './themes/EnhancedScrollbarStyle';
 import { AppUpdateProvider } from '@/hooks/useAppUpdate';
@@ -72,6 +72,10 @@ const App: React.FC = () => {
 const container = document.getElementById('root');
 const root = createRoot(container!);
 
-root.render(<App />);
+root.render(
+  <SettingsProvider>
+    <App />
+  </SettingsProvider>
+);
 
 console.log('👋 This message is being logged by "renderer.js", included via webpack');

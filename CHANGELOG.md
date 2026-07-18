@@ -6,7 +6,12 @@
 
 ## [Unreleased]
 
-（暂无）
+### 变更
+- 设置页 UI：改为 Tabs（外觀與語言 / AI 服務 / 關於與更新），各配置 Tab 独立保存；主题预览卡；Settings 改为 Context 共享以实现主题热更新
+- 设置页「检查更新」不再重复弹出顶部更新横幅（页内已展示版本信息）
+
+### 修复
+- 应用内「更新说明」：当 GitHub Release 正文仅为自动生成的 Full Changelog 链接时，回退读取 `CHANGELOG.md` 对应版本段；CD 发版改为用 CHANGELOG 写入 Release body
 
 ## [1.3.5] - 2026-07-18
 

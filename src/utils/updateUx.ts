@@ -93,7 +93,7 @@ export function getBannerIntro(currentVersion: string, latestVersion: string): s
 }
 
 export function getSettingsIntro(): string {
-  return '检查是否有新版本。有更新时将下载安装包并打开安装程序；安装完成后请关闭并重新打开本应用。';
+  return '檢查是否有新版本。有更新時將下載安裝包並打開安裝程序；安裝完成後請關閉並重新打開本應用。';
 }
 
 /** 点「立即更新」前的确认说明 */

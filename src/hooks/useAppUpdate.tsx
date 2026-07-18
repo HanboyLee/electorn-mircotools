@@ -27,7 +27,11 @@ export interface AppUpdateContextValue {
   lastError: string | null;
   /** 是否可「立即更新」（有新版本且有本平台安装包地址） */
   canUpdate: boolean;
-  checkForUpdates: () => Promise<UpdateCheckResult | null>;
+  /**
+   * 检查更新。
+   * @param options.showBanner 是否展示全局顶部横幅；设置页内手动检查应传 false（页内已展示版本信息）
+   */
+  checkForUpdates: (options?: { showBanner?: boolean }) => Promise<UpdateCheckResult | null>;
   downloadAndInstall: () => Promise<UpdateDownloadResult | null>;
   dismissBanner: () => void;
   clearLastError: () => void;
@@ -50,50 +54,61 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     checkResult?.success && checkResult.hasUpdate && checkResult.downloadUrl && checkResult.assetName
   );
 
-  const applyCheckResult = useCallback((result: UpdateCheckResult) => {
-    setCheckResult(result);
-    const can =
-      result.success && result.hasUpdate && Boolean(result.downloadUrl && result.assetName);
-    if (!can || !result.latestVersion) {
-      setBannerVisible(false);
-      return;
-    }
-    if (isDismissedForVersion(result.latestVersion)) {
-      setBannerVisible(false);
-      return;
-    }
-    setBannerVisible(true);
-  }, []);
+  const applyCheckResult = useCallback(
+    (result: UpdateCheckResult, options?: { showBanner?: boolean }) => {
+      setCheckResult(result);
+      const can =
+        result.success && result.hasUpdate && Boolean(result.downloadUrl && result.assetName);
+      if (!can || !result.latestVersion) {
+        setBannerVisible(false);
+        return;
+      }
+      // 设置页等场景：只刷新 checkResult，不重复弹全局横幅
+      if (options?.showBanner === false) {
+        return;
+      }
+      if (isDismissedForVersion(result.latestVersion)) {
+        setBannerVisible(false);
+        return;
+      }
+      setBannerVisible(true);
+    },
+    []
+  );
 
   const clearLastError = useCallback(() => setLastError(null), []);
 
-  const checkForUpdates = useCallback(async (): Promise<UpdateCheckResult | null> => {
-    setChecking(true);
-    setProgress(null);
-    setLastError(null);
-    try {
-      const result = (await window.electronAPI[UpdateIPC.CHECK]()) as UpdateCheckResult;
-      applyCheckResult(result);
-      return result;
-    } catch (error) {
-      console.error('检查更新失败:', error);
-      const fallback: UpdateCheckResult = {
-        success: false,
-        currentVersion: currentVersion || '',
-        latestVersion: null,
-        hasUpdate: false,
-        releaseNotes: null,
-        downloadUrl: null,
-        assetName: null,
-        error: error instanceof Error ? error.message : String(error),
-      };
-      setCheckResult(fallback);
-      setBannerVisible(false);
-      return fallback;
-    } finally {
-      setChecking(false);
-    }
-  }, [applyCheckResult, currentVersion]);
+  const checkForUpdates = useCallback(
+    async (options?: { showBanner?: boolean }): Promise<UpdateCheckResult | null> => {
+      setChecking(true);
+      setProgress(null);
+      setLastError(null);
+      try {
+        const result = (await window.electronAPI[UpdateIPC.CHECK]()) as UpdateCheckResult;
+        // 默認不開橫幅：手動檢查由調用方決定；啟動推送走 AVAILABLE 事件
+        applyCheckResult(result, { showBanner: options?.showBanner ?? false });
+        return result;
+      } catch (error) {
+        console.error('检查更新失败:', error);
+        const fallback: UpdateCheckResult = {
+          success: false,
+          currentVersion: currentVersion || '',
+          latestVersion: null,
+          hasUpdate: false,
+          releaseNotes: null,
+          downloadUrl: null,
+          assetName: null,
+          error: error instanceof Error ? error.message : String(error),
+        };
+        setCheckResult(fallback);
+        setBannerVisible(false);
+        return fallback;
+      } finally {
+        setChecking(false);
+      }
+    },
+    [applyCheckResult, currentVersion]
+  );
 
   const downloadAndInstall = useCallback(async (): Promise<UpdateDownloadResult | null> => {
     if (downloading) {

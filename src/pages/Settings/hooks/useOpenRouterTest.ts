@@ -26,7 +26,8 @@ export function useOpenRouterTest() {
     testing: false
   });
   
-  const [models, setModels] = useState<OpenRouterModelInfo[]>(settings.savedModels || []);
+  const [fetchedModels, setFetchedModels] = useState<OpenRouterModelInfo[] | null>(null);
+  const models = fetchedModels ?? settings.savedModels ?? [];
   const cacheRef = useRef<TestCache | null>(null);
   const timerRef = useRef<NodeJS.Timeout>();
   const pendingTestRef = useRef<string>();
@@ -51,7 +52,7 @@ export function useOpenRouterTest() {
         result
       });
       if (result.models) {
-        setModels(result.models);
+        setFetchedModels(result.models);
       }
       return result;
     }
@@ -76,7 +77,7 @@ export function useOpenRouterTest() {
 
       // 如果有可用模型，更新模型列表並保存到設置中
       if (result.models && result.models.length > 0) {
-        setModels(result.models);
+        setFetchedModels(result.models);
         
         // 保存模型列表到設置中
         updateSettings({
@@ -127,14 +128,6 @@ export function useOpenRouterTest() {
     });
   }, [status.testing, runTest]);
 
-  // 自動加載已保存的模型
-  useEffect(() => {
-    // 如果有已保存的模型，則使用它們
-    if (settings.savedModels && settings.savedModels.length > 0) {
-      setModels(settings.savedModels);
-    }
-  }, [settings.savedModels]);
-
   // 如果有 API 密鑰但沒有模型列表，或者模型列表過期，則自動更新
   useEffect(() => {
     const apiKey = settings.openrouterApiKey;
@@ -144,8 +137,7 @@ export function useOpenRouterTest() {
     
     // 如果有 API 密鑰，且模型列表為空或過期，則自動更新
     if (apiKey && (models.length === 0 || isExpired) && !status.testing) {
-      console.log('自動更新模型列表');
-      testConnection(apiKey);
+      void testConnection(apiKey);
     }
   }, [settings.openrouterApiKey, settings.lastModelUpdateTime, models.length, status.testing, testConnection]);
 
