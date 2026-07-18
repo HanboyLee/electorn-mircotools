@@ -6,7 +6,8 @@
 
 ## [Unreleased]
 
-（暂无）
+### 变更
+- 重写根目录 `README.md`：对齐当前功能、antd/Vite 技术栈、开发命令、一人主干 Git 流程与 CI/CD / Releases 说明
 
 ## [1.3.1] - 2026-07-18
 
