@@ -8,6 +8,15 @@
 
 （暂无）
 
+## [1.3.3] - 2026-07-18
+
+### 新增
+- CD 同时构建 **Windows** 与 **macOS** 安装/分发产物：Windows 为 `metadata-app-setup.exe`，macOS 为 Forge zip（内含 `.app`），一并挂到同一 GitHub Release
+
+### 变更
+- Release 工作流改为矩阵构建 + 汇总发布，避免只出 Windows 包
+- 打包放行 `exiftool-vendored.pl` / `.exe`，便于 macOS 使用 vendored ExifTool 写元数据
+
 ## [1.3.2] - 2026-07-18
 
 ### 修复

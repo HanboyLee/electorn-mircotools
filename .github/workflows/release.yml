@@ -1,6 +1,6 @@
 # CD — solo-trunk-cicd
 # Triggers: push tag v* (e.g. v1.0.1), optional manual dispatch
-# Merge/push to master alone does NOT publish installers
+# Builds Windows + macOS installers, then attaches both to one GitHub Release
 
 name: Release
 
@@ -23,10 +23,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  windows:
-    name: Build Windows installer
-    runs-on: windows-latest
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
 
     steps:
       - name: Checkout
@@ -55,13 +59,23 @@ jobs:
             exit 1
           fi
 
-      - name: Upload build artifacts
+      - name: Upload make artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-make
+          name: make-${{ matrix.os }}
           path: out/make/**
           if-no-files-found: error
           retention-days: 14
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout (for package.json version on manual runs)
+        uses: actions/checkout@v4
 
       - name: Resolve release tag
         id: meta
@@ -80,6 +94,17 @@ jobs:
             echo "is_tag_push=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          pattern: make-*
+          merge-multiple: true
+
+      - name: List release assets
+        shell: bash
+        run: find release-assets -type f | sort
+
       - name: Create / update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -87,11 +112,13 @@ jobs:
           name: ${{ steps.meta.outputs.tag }}
           draft: ${{ steps.meta.outputs.is_tag_push != 'true' }}
           generate_release_notes: true
+          # Windows: setup.exe / nupkg；macOS: Forge zip（.app 压缩包）
           files: |
-            out/make/**/*.exe
-            out/make/**/*.nupkg
-            out/make/**/*.msi
-            out/make/**/*.zip
+            release-assets/**/*.exe
+            release-assets/**/*.nupkg
+            release-assets/**/*.msi
+            release-assets/**/*.zip
+            release-assets/**/*.dmg
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

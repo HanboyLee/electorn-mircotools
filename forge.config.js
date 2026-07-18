@@ -25,6 +25,13 @@ module.exports = {
         if (filePath.includes('node_modules/electron-squirrel-startup')) {
           return false;
         }
+        // macOS / 部分 Windows：exiftool-vendored 运行时要找平台二进制（不在 JS bundle 内）
+        if (
+          filePath.includes('node_modules/exiftool-vendored.pl') ||
+          filePath.includes('node_modules/exiftool-vendored.exe')
+        ) {
+          return false;
+        }
         if (filePath.includes('.vite/build')) {
           return false;
         }
