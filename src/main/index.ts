@@ -3,8 +3,8 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { FileService } from '../services/fileService';
 import { MetadataService } from '../services/metadataService';
 import { NetworkService } from '../services/networkService';
-import { ZipService, zipService } from '../services/zipService';
-import { ZipIPC } from '../constants/ipc';
+import { ZipService } from '../services/zipService';
+import { UpdateService } from '../services/updateService';
 
 import * as path from 'path';
 
@@ -148,7 +148,7 @@ const initializeServices = () => {
     new MetadataService(),
     new NetworkService(),
     new ZipService(),
-    // 添加更多服務...
+    new UpdateService(),
   ];
 
   // 註冊所有服務的處理器

@@ -9,6 +9,7 @@ import { useOpenRouterTest } from './hooks/useOpenRouterTest';
 import { isEqual } from 'lodash';
 import BasicSettings from './components/BasicSettings';
 import APISettings from './components/APISettings';
+import AboutUpdateSettings from './components/AboutUpdateSettings';
 
 const { Title } = Typography;
 const { Panel } = Collapse;
@@ -145,7 +146,7 @@ const Settings: React.FC = () => {
 
         <Form form={form} layout="vertical" onFinish={handleSave} onValuesChange={handleFormChange}>
           <Collapse 
-            defaultActiveKey={['basic', 'api']} 
+            defaultActiveKey={['basic', 'api', 'about']} 
             accordion={false} 
             style={{ marginBottom: 24 }}
             bordered={false}
@@ -175,6 +176,14 @@ const Settings: React.FC = () => {
                 selectedModel={selectedModel}
                 onModelChange={handleModelChange}
               />
+            </Panel>
+
+            <Panel
+              header={<Title level={4} style={{ margin: 0 }}>关于与更新</Title>}
+              key="about"
+              style={{ backgroundColor: token.colorBgContainer }}
+            >
+              <AboutUpdateSettings />
             </Panel>
           </Collapse>
 

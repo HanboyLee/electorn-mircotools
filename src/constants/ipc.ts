@@ -42,6 +42,20 @@ export enum ZipIPC {
   OPEN_ITEM = 'zip:open-item',
 }
 
+// 應用更新相關的 IPC 通道（GitHub Release 检查 / 下载安装包）
+export enum UpdateIPC {
+  /** invoke：检查是否有新版本 */
+  CHECK = 'update:check',
+  /** invoke：下载安装包并打开安装程序 */
+  DOWNLOAD = 'update:download',
+  /** invoke：当前版本与平台 */
+  GET_VERSION = 'update:get-version',
+  /** event：下载进度（主进程 → 渲染进程） */
+  PROGRESS = 'update:progress',
+  /** event：启动检查发现新版本（主进程 → 渲染进程） */
+  AVAILABLE = 'update:available',
+}
+
 // 導出所有 IPC 通道
 export const IPC = {
   ...FileIPC,
@@ -49,6 +63,7 @@ export const IPC = {
   ...StoreIPC,
   ...NetworkIPC,
   ...ZipIPC,
+  ...UpdateIPC,
   SEND_MESSAGE: 'send-message',
   GET_SYSTEM_INFO: 'get-system-info',
   GET_SYSTEM_INFO_SYNC: 'get-system-info-sync',

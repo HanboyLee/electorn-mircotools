@@ -5,6 +5,7 @@ import styled from 'styled-components';
 
 import CustomTitleBar from './CustomTitleBar';
 import SidebarMenu from './SidebarMenu';
+import UpdateBanner from '../UpdateBanner';
 
 const { Content } = Layout;
 
@@ -39,6 +40,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             transition: 'margin-left 0.3s ease',
           }}
         >
+          <UpdateBanner />
           {children}
         </Content>
         

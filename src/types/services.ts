@@ -4,11 +4,21 @@ export type ServiceHandler = {
   handler: (...args: any[]) => Promise<any>;
 };
 
-import { FileIPC, MetadataIPC, ZipIPC } from '../constants/ipc';
+import { FileIPC, MetadataIPC, NetworkIPC, UpdateIPC, ZipIPC } from '../constants/ipc';
 import { CsvMetadataRow, WriteMetadataResult } from './metadata';
+import type {
+  UpdateCheckResult,
+  UpdateDownloadResult,
+  UpdateVersionInfo,
+} from './update';
 
-// 定義所有可能的 channel 名稱
-export type APIChannel = FileIPC | MetadataIPC | ZipIPC;
+// 定義所有可能的 channel 名稱（含事件通道时仅 invoke 用 string 注册）
+export type APIChannel =
+  | FileIPC
+  | MetadataIPC
+  | ZipIPC
+  | NetworkIPC
+  | UpdateIPC;
 
 // API 方法類型定義
 export interface APIMethodMap {

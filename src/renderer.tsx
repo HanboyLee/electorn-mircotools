@@ -29,7 +29,7 @@
 import './index.css';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { ConfigProvider } from 'antd';
+import { App as AntdApp, ConfigProvider } from 'antd';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import MainLayout from './components/Layout/MainLayout';
 import Home from './pages/Home/index';
@@ -41,25 +41,30 @@ import { themes } from './themes';
 import { useSettingsStore } from '@/hooks/SettingsStore';
 import { GlobalStyle } from './themes/GlobalStyle';
 import EnhancedScrollbarStyle from './themes/EnhancedScrollbarStyle';
+import { AppUpdateProvider } from '@/hooks/useAppUpdate';
 
 const App: React.FC = () => {
   const { settings } = useSettingsStore();
 
   return (
     <ConfigProvider theme={themes[settings.theme]}>
-      <GlobalStyle theme={settings.theme} />
-      <EnhancedScrollbarStyle />
-      <Router>
-        <MainLayout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/csv-validation" element={<CsvValidation />} />
-            <Route path="/image-analyze" element={<ImageAnalyze />} />
-            <Route path="/file-packaging" element={<FilePackaging />} />
-          </Routes>
-        </MainLayout>
-      </Router>
+      <AntdApp>
+        <GlobalStyle theme={settings.theme} />
+        <EnhancedScrollbarStyle />
+        <AppUpdateProvider>
+          <Router>
+            <MainLayout>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/csv-validation" element={<CsvValidation />} />
+                <Route path="/image-analyze" element={<ImageAnalyze />} />
+                <Route path="/file-packaging" element={<FilePackaging />} />
+              </Routes>
+            </MainLayout>
+          </Router>
+        </AppUpdateProvider>
+      </AntdApp>
     </ConfigProvider>
   );
 };
