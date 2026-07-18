@@ -1,164 +1,171 @@
-# Metadata Desktop（electorn-mircotools）
+# Metadata Desktop
 
-基于 **Electron + React + TypeScript** 的桌面小工具集合，面向图片/媒体 **元数据写入与校验**、文件打包与 LLM 辅助分析。
+Windows 优先的 **Electron 桌面工具**，用来批量处理图片元数据、用 AI 生成描述关键词，并把相关文件打成 ZIP。
 
-当前版本：**1.3.1**  
-仓库：https://github.com/HanboyLee/electorn-mircotools  
-安装包：https://github.com/HanboyLee/electorn-mircotools/releases
+适合：需要给大量图片写 **标题 / 描述 / 关键词**（例如素材库、投稿、归档），又不想一张张用 Exif 工具手改的人。
 
 ---
 
-## 功能概览
+## 这个项目是干什么的？
 
-| 模块 | 说明 |
+手动给几百张图写元数据又慢又容易错。本应用把常见流程收成几个页面：
+
+1. **用 CSV 批量写入**图片元数据（核心）  
+2. **用 LLM 看图**，生成标题/描述/关键词，并可导出成 CSV，再拿去写入  
+3. **按规则把文件打成 ZIP**，方便交付或归档  
+4. 在 **设置** 里配置 AI API；侧栏可看网络状态  
+
+底层通过 **ExifTool** 读写图片元数据（安装包内已带 Windows 用资源）。
+
+---
+
+## 具体能做什么？
+
+### 1. 元数据写入（侧栏：元数据写入）
+
+把表格里的信息写进目录中的对应图片。
+
+**典型流程：**
+
+1. 选择放图片的文件夹（支持 `.jpg` / `.jpeg` / `.png`）  
+2. 上传 CSV（内容与文件名对应）  
+3. 应用检查：CSV 是否合法、文件名是否在目录中都能匹配  
+4. 确认后点 **开始写入元数据**，在原目录改图片文件  
+5. 查看写入结果摘要（成功 / 跳过 / 失败）  
+
+**CSV 必需列（顺序）：**
+
+```text
+FileName,Title,Description,Keywords
+```
+
+- `FileName`：与目录中图片文件名对应  
+- `Title` / `Description` / `Keywords`：写入图片的标题、描述、关键词  
+
+非法 CSV 或未匹配到的文件不会当成「可写入就绪」状态。
+
+---
+
+### 2. LLM 图片分析（侧栏：LLM 图片分析）
+
+上传图片，调用你在设置里配置的 AI 服务，为每张图生成分析结果（标题、描述、关键词等），可导出 CSV，便于再走「元数据写入」。
+
+使用前需在 **设置** 中配置可用的 API Key（如 OpenAI / OpenRouter）并测通。
+
+---
+
+### 3. 文件打包（侧栏：文件打包）
+
+选择目录 → 扫描并分组文件 → 勾选需要的组 → 打成 ZIP，适合批量交付或备份相关素材。
+
+---
+
+### 4. 设置 / 系统调试
+
+| 页面 | 作用 |
 |------|------|
-| **元数据写入**（CsvValidator） | 选择目录、上传 CSV、匹配统计与就绪检查，批量写入关键字等元数据（含 JPEG / PNG 等） |
-| **LLM 图片分析**（AnalyzeByImage） | 结合配置的 API，对图片做分析辅助 |
-| **文件打包**（FilePackaging） | 本地文件打包相关能力 |
-| **设置** | 主题与 OpenAI / OpenRouter 等 API 配置 |
-| **网络状态** | 侧栏网络连通性指示 |
-
-主流程依赖本机资源（如打包进应用的 ExifTool），**以 Windows 为主发布目标**。
+| **设置** | API Key、模型、分析提示词、主题等 |
+| **系统调试** | 本地文件读写、系统信息等调试能力（开发/排查用） |
 
 ---
 
-## 技术栈
+## 普通用户：安装与使用（推荐）
 
-- **桌面**：Electron 33 + Electron Forge  
-- **前端**：React 18、TypeScript、antd、styled-components  
-- **构建**：Vite（主进程 / preload / 渲染进程）  
-- **测试**：Vitest  
-- **元数据**：exiftool-vendored、exifr 等  
+不需要装 Node，直接用安装包。
 
-> 旧文档中的 Material-UI / Webpack 已移除，请以本 README 为准。
+### 安装
+
+1. 打开发布页：  
+   https://github.com/HanboyLee/electorn-mircotools/releases  
+2. 进入最新版本（例如 [v1.3.1](https://github.com/HanboyLee/electorn-mircotools/releases/tag/v1.3.1)）  
+3. 下载 **`metadata-app-setup.exe`**  
+4. 双击安装，按向导完成  
+
+> 安装包暂未代码签名，Windows 可能弹出 SmartScreen，可选择「仍要运行 / 更多信息」。
+
+### 使用（元数据写入示例）
+
+1. 打开应用，进入 **元数据写入**  
+2. 选图片目录 → 上传符合格式的 CSV  
+3. 看匹配统计与就绪检查是否通过  
+4. 点击 **开始写入元数据**  
+5. 在结果区确认是否写完  
+
+若要用 AI 分析，先到 **设置** 配好 Key，再到 **LLM 图片分析**。
 
 ---
 
-## 环境要求
+## 开发者：从源码安装与运行
 
-- **Node.js** ≥ 20  
-- **包管理**：仅使用 **npm**（`package-lock.json`；请勿再引入 `yarn.lock`）  
-- 开发机：macOS / Windows 均可；正式安装包由 CI 在 **Windows** 上构建  
+### 环境
 
----
+- Node.js **≥ 20**  
+- 仅使用 **npm**（仓库使用 `package-lock.json`）  
 
-## 本地开发
+### 安装依赖
 
 ```bash
-# 安装依赖
+# 克隆仓库
+git clone https://github.com/HanboyLee/electorn-mircotools.git
+cd electorn-mircotools
+
+# 安装依赖（推荐，与 lock 一致）
 npm ci
-# 或首次 / 无 lock 同步时
-npm install
-
-# 启动（按系统）
-npm run start:mac    # macOS
-npm run start:win    # Windows（UTF-8 控制台）
-
-# 质量检查
-npm test             # Vitest
-npm run lint         # ESLint
-npm run format:check # Prettier（可选）
 ```
 
-### 本地打包
+若本地没有 lock 或需要更新依赖，再用 `npm install`。
+
+### 启动应用
 
 ```bash
-npm run package   # 打包未安装目录
-npm run make      # 生成安装产物（Windows 上为 Squirrel 等）
+# macOS
+npm run start:mac
+
+# Windows
+npm run start:win
 ```
 
-产物目录：`out/`（已在 `.gitignore`，不要提交）。
+会启动 Electron 开发窗口（Forge + Vite）。
 
----
-
-## 下载安装包（用户）
-
-1. 打开 [Releases](https://github.com/HanboyLee/electorn-mircotools/releases)  
-2. 选择版本（例如 [v1.3.1](https://github.com/HanboyLee/electorn-mircotools/releases/tag/v1.3.1)）  
-3. 下载 **`metadata-app-setup.exe`** 并安装  
-
-说明：当前发布包**未做代码签名**，Windows 可能出现 SmartScreen 提示，属预期；内测可选择「仍要运行」。
-
----
-
-## Git 与协作（一人主干）
-
-默认分支：**`master`**（仅长期保留此分支）。
-
-| 场景 | 做法 |
-|------|------|
-| 小改（文案、极小 fix） | 可直推 `master` |
-| 功能 / 重构 / 打包 / CI | `feature/<短名>` → PR → CI 绿后自己合并 |
-| 发版 | 见下文；**不要**用 merge 代替打 tag |
-
-`master` 已开启 **Branch protection**：
-
-- 合并 PR 前需通过 status check **`Lint & test`**  
-- 禁止 force-push / 删除 `master`  
-- **不要求** Reviewer 审批（单人开发）  
-
-更细的触发约定见仓库内 agent skill（本地）：`solo-trunk-cicd`。
-
----
-
-## CI / CD
-
-| 流水线 | 触发 | 做什么 |
-|--------|------|--------|
-| **CI** | `pull_request` / `push` → `master` | `npm ci` → lint（暂不阻断合并）→ test |
-| **CD** | 推送 tag **`v*`**（如 `v1.3.1`） | Windows 上 `npm run make` → 上传 [GitHub Release](https://github.com/HanboyLee/electorn-mircotools/releases) |
-
-工作流文件：
-
-- `.github/workflows/ci.yml`  
-- `.github/workflows/release.yml`  
-
-**合并到 `master` ≠ 发版**；只有推送符合 `v*` 的 tag 才会构建并挂安装包。
-
-### 发版步骤（维护者）
+### 常用命令
 
 ```bash
-git checkout master && git pull origin master
+npm test              # 单元测试
+npm run lint          # 代码检查
+npm run format:check  # 格式检查
 
-# 1. 更新 package.json 的 version
-# 2. 更新 CHANGELOG.md（将 [Unreleased] 收成正式版本段）
-git add package.json CHANGELOG.md
-git commit -m "chore(release): vX.Y.Z"
-git push origin master
-
-# 3. 打 tag 并推送（触发 CD）
-git tag -a vX.Y.Z -m "vX.Y.Z"
-git push origin vX.Y.Z
+npm run package       # 打出未安装的应用目录
+npm run make          # 生成安装包（Windows 上为 setup.exe 等）
 ```
 
-然后在 Actions 查看 **Release** 任务，在 Releases 页确认 `metadata-app-setup.exe` 等资源。
+- 本地打包产物在 **`out/`**，不要提交到 Git。  
+- 正式给别人的安装包，以 GitHub Actions 在 Windows 上 `make` 后传到 Releases 为准。
 
 ---
 
-## 目录结构（简要）
+## 项目结构（简要）
 
 ```text
 src/
-  main/           # Electron 主进程
-  preload.ts      # 预加载 / IPC 桥
-  pages/          # 业务页面（元数据写入、分析、打包、设置…）
-  services/       # 主进程侧服务能力
-  components/     # 布局与通用 UI
-forge.config.js   # Electron Forge + Vite + makers
-.github/workflows # CI / CD
-CHANGELOG.md      # 全局变更日志（推送前请维护）
+  main/          # Electron 主进程
+  preload.ts     # 预加载 / 与页面通信
+  pages/         # 各功能页
+    CsvValidator/    # 元数据写入
+    AnalyzeByImage/  # LLM 图片分析
+    FilePackaging/   # 文件打包
+    Settings/        # 设置
+    Home/            # 系统调试
+  services/      # 文件、元数据、压缩等服务
+  components/    # 布局、侧栏等
+forge.config.js  # 打包配置（含 ExifTool 等资源）
 ```
 
----
-
-## 文档与变更记录
-
-- 变更日志：[CHANGELOG.md](./CHANGELOG.md)  
-- 架构与其它说明：`docs/`  
-- 许可证说明：`docs/LICENSE.md`  
+更细的变更见 [CHANGELOG.md](./CHANGELOG.md)。
 
 ---
 
-## 许可证
+## 版本与反馈
 
-见仓库内 `docs/LICENSE.md` 与 `package.json` 的 `license` 字段（MIT）。
+- 当前应用版本见 `package.json` 的 `version`（现为 **1.3.1**）  
+- 问题与需求：在 GitHub 仓库提 Issue  
+- 仓库：https://github.com/HanboyLee/electorn-mircotools  
