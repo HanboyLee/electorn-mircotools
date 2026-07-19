@@ -8,6 +8,12 @@
 
 （暂无）
 
+## [1.3.8] - 2026-07-19
+
+### 修复
+- Windows「元数据写入」：不再用 `exec` 拼超长 shell 命令调用 ExifTool（长描述/空格/特殊字符易触发 `Command failed` 整段命令行报错）；改为与 macOS 一致走 `exiftool-vendored`，Windows 指向安装包内 `resources/exiftool-13.12_64/exiftool.exe`，经 stay_open/stdin 写入并 `-overwrite_original`
+- 写入失败时错误信息截断，避免 UI 整屏堆出完整 ExifTool 命令行
+
 ## [1.3.7] - 2026-07-19
 
 ### 变更

@@ -1,46 +1,22 @@
 import { BaseService } from '../_shared';
 import { MetadataIPC } from '../../constants/ipc';
 import { WriteMetadataResult, CsvMetadataRow } from '../../types/metadata';
-import { promises as fs } from 'fs';
 import * as fsSync from 'fs';
 import * as path from 'path';
-import exifr from 'exifr';
 import { ExifTool } from 'exiftool-vendored';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import { app } from 'electron';
-
-const execAsync = promisify(exec);
-
-/** Collect keywords from IPTC/XMP/generic fields after ExifTool read. */
-function normalizeKeywordsFromRead(written: any, fallback: string[]): string[] {
-  if (!written) return fallback;
-  const candidates = [
-    written.Keywords,
-    written.Subject,
-    written['IPTC:Keywords'],
-    written['XMP-dc:Subject'],
-    written['XMP:Subject'],
-  ];
-  for (const value of candidates) {
-    if (Array.isArray(value) && value.length) {
-      return value.map(String).map(k => k.trim()).filter(Boolean);
-    }
-    if (typeof value === 'string' && value.trim()) {
-      return value
-        .split(/[;,]/)
-        .map(k => k.trim())
-        .filter(Boolean);
-    }
-  }
-  return fallback;
-}
+import {
+  buildWriteTags,
+  formatWriteError,
+  normalizeKeywordsFromRead,
+  resolveWindowsExiftoolPath,
+} from './metadataWriteHelpers';
 
 export class MetadataService extends BaseService {
   private static instance: MetadataService;
   private exiftool: ExifTool | null = null;
   private isProcessing: boolean = false;
-  private readonly localExiftoolPath: string;
+  private readonly localExiftoolPath: string | null;
 
   constructor() {
     super();
@@ -48,43 +24,24 @@ export class MetadataService extends BaseService {
       return MetadataService.instance;
     }
 
-    // 获取应用资源目录
-    const isProduction = process.env.NODE_ENV === 'production' || !process.env.NODE_ENV;
     const appPath = app.getAppPath();
     console.log('应用路径:', appPath);
-    console.log('是否生产环境:', isProduction);
     console.log('process.resourcesPath:', process.resourcesPath);
+    console.log('运行平台:', process.platform);
 
-    // 检查多个可能的路径
-    const possiblePaths = [
-      // 生产环境路径
-      path.join(process.resourcesPath || '', 'exiftool-13.12_64', 'exiftool.exe'),
-      // 开发环境路径
-      path.join(process.cwd(), 'exiftool-13.12_64', 'exiftool.exe'),
-      // 额外的备选路径
-      path.join(appPath, '..', 'resources', 'exiftool-13.12_64', 'exiftool.exe'),
-      path.join(appPath, 'resources', 'exiftool-13.12_64', 'exiftool.exe'),
-    ];
-
-    console.log('正在检查以下路径:');
-    possiblePaths.forEach((p, i) => console.log(`路径 ${i + 1}:`, p));
-
-    for (const testPath of possiblePaths) {
-      try {
-        if (fsSync.existsSync(testPath)) {
-          this.localExiftoolPath = testPath;
-          console.log('找到 ExifTool：', this.localExiftoolPath);
-          break;
-        } else {
-          console.log('路径不存在：', testPath);
-        }
-      } catch (error) {
-        console.log('检查路径时出错：', testPath, error);
+    if (process.platform === 'win32') {
+      this.localExiftoolPath = resolveWindowsExiftoolPath(
+        process.resourcesPath,
+        process.cwd(),
+        appPath
+      );
+      if (this.localExiftoolPath) {
+        console.log('找到 Windows ExifTool：', this.localExiftoolPath);
+      } else {
+        console.error('无法找到 Windows ExifTool（exiftool-13.12_64/exiftool.exe）');
       }
-    }
-
-    if (!this.localExiftoolPath) {
-      console.error('无法找到 ExifTool，已检查的所有路径都无效');
+    } else {
+      this.localExiftoolPath = null;
     }
 
     MetadataService.instance = this;
@@ -99,9 +56,35 @@ export class MetadataService extends BaseService {
     ];
   }
 
+  /**
+   * Both platforms use exiftool-vendored.
+   * Windows: point at bundled Oliver Betz exiftool.exe (no fragile shell cmdline).
+   * macOS/Linux: default vendored perl binary.
+   *
+   * Why not shell `exec` on Windows:
+   * - Title/Description with spaces/quotes/%/& break cmd quoting
+   * - Long AI descriptions × multiple tags hit Windows cmdline length limits
+   * - Error surfaces as opaque "Command failed: <entire command>"
+   */
   private async initExifTool() {
-    if (!this.exiftool && process.platform !== 'win32') {
-      console.log('macOS: 初始化 ExifTool...');
+    if (this.exiftool) return;
+
+    if (process.platform === 'win32') {
+      if (!this.localExiftoolPath || !fsSync.existsSync(this.localExiftoolPath)) {
+        throw new Error(
+          `找不到 ExifTool: ${this.localExiftoolPath || '(未解析到路径)'}。请确认安装包含 resources/exiftool-13.12_64。`
+        );
+      }
+      console.log('Windows: 初始化 ExifTool（vendored + 本地 exe）...', this.localExiftoolPath);
+      this.exiftool = new ExifTool({
+        exiftoolPath: this.localExiftoolPath,
+        taskTimeoutMillis: 60000,
+        maxTasksPerProcess: 1,
+        minDelayBetweenTasks: 100,
+        // stay_open args go via stdin — no Windows CreateProcess length issues
+      });
+    } else {
+      console.log('macOS/Linux: 初始化 ExifTool（vendored）...');
       this.exiftool = new ExifTool({
         taskTimeoutMillis: 60000,
         maxTasksPerProcess: 1,
@@ -112,7 +95,7 @@ export class MetadataService extends BaseService {
 
   private async checkFileAccess(filePath: string): Promise<boolean> {
     try {
-      const normalizedPath = path.resolve(filePath).replace(/\\/g, '/');
+      const normalizedPath = path.resolve(filePath);
       console.log('檢查文件訪問權限：', normalizedPath);
 
       if (!fsSync.existsSync(normalizedPath)) {
@@ -137,93 +120,15 @@ export class MetadataService extends BaseService {
     }
   }
 
-  private async writeMetadataWindows(imagePath: string, metadata: any): Promise<any> {
-    console.log('Windows: 使用本地 ExifTool...');
-    console.log('ExifTool 路徑：', this.localExiftoolPath);
-
-    if (!fsSync.existsSync(this.localExiftoolPath)) {
-      throw new Error(`ExifTool 不存在：${this.localExiftoolPath}`);
-    }
-
-    // 处理关键词：分别写入每个关键词
-    const keywordsList = metadata.Keywords.map(k => k.trim()).filter(Boolean);
-
-    // 构建命令行参数
-    const args = [
-      '-overwrite_original',
-      '-codedcharacterset=UTF8',
-      '-charset',
-      'iptc=UTF8',
-      '-m', // 忽略小错误
-      `-Title=${metadata.Title}`,
-      `-Description=${metadata.Description}`,
-      `-IPTC:ObjectName=${metadata.Title}`,
-      `-IPTC:Caption-Abstract=${metadata.Description}`,
-      `-XMP-dc:Title=${metadata.Title}`,
-      `-XMP-dc:Description=${metadata.Description}`,
-      // 分别写入每个关键词到 IPTC 和 XMP-dc
-      ...keywordsList.flatMap(k => [`-IPTC:Keywords=${k}`, `-XMP-dc:Subject=${k}`]),
-      imagePath,
-    ];
-
-    // 执行命令
-    try {
-      const command = `"${this.localExiftoolPath}" ${args.map(arg => `"${arg}"`).join(' ')}`;
-      console.log('執行命令：', command);
-
-      const { stdout, stderr } = await execAsync(command);
-
-      if (stderr) {
-        console.log('ExifTool 警告輸出：', stderr);
-        if (
-          !stderr.includes('1 image files updated') &&
-          !stderr.toLowerCase().includes('warning')
-        ) {
-          throw new Error(stderr);
-        }
-      }
-
-      console.log('ExifTool 輸出：', stdout);
-
-      // 验证文件是否被更新
-      const stats = await fs.stat(imagePath);
-      console.log('文件最後修改時間：', stats.mtime);
-
-      // 读取更新后的元数据
-      const { stdout: metadataJson } = await execAsync(
-        `"${this.localExiftoolPath}" -json -Title -Description -IPTC:Keywords -XMP-dc:Subject "${imagePath}"`
-      );
-      const writtenMetadata = JSON.parse(metadataJson)[0];
-
-      // 处理读取到的关键词
-      let keywords = writtenMetadata['IPTC:Keywords'] || writtenMetadata['XMP-dc:Subject'] || [];
-      if (typeof keywords === 'string') {
-        keywords = [keywords];
-      } else if (Array.isArray(keywords)) {
-        keywords = keywords.filter(Boolean);
-      }
-      writtenMetadata.Keywords = keywords;
-
-      console.log('讀取到的元數據：', writtenMetadata);
-      return writtenMetadata;
-    } catch (error) {
-      if (error instanceof Error && !error.message.toLowerCase().includes('warning')) {
-        console.error('執行 ExifTool 時發生錯誤：', error);
-        throw error;
-      } else {
-        console.log('ExifTool 警告（已忽略）：', error);
-      }
-    }
-  }
-
-  private async writeMetadataMacOS(imagePath: string, metadata: any): Promise<void> {
+  private async writeOneFile(imagePath: string, tags: Record<string, any>): Promise<any> {
     if (!this.exiftool) {
       throw new Error('ExifTool 未初始化');
     }
 
-    console.log('macOS: 使用 ExifTool 寫入元數據');
-    await this.exiftool.write(imagePath, metadata);
-    console.log('macOS: 元數據寫入完成');
+    // In-place write (no *_original backup). Special chars / long text are
+    // HTML-entity encoded by exiftool-vendored WriteTask — safe on Windows.
+    await this.exiftool.write(imagePath, tags, ['-overwrite_original']);
+    return this.exiftool.read(imagePath);
   }
 
   private async writeMetadata(
@@ -242,17 +147,12 @@ export class MetadataService extends BaseService {
       console.log('圖片目錄：', imageDir);
       console.log('運行平台：', process.platform);
 
-      if (process.platform !== 'win32') {
-        await this.initExifTool();
-      } else {
-        if (!fsSync.existsSync(this.localExiftoolPath)) {
-          throw new Error(`找不到 ExifTool: ${this.localExiftoolPath}`);
-        }
-      }
+      await this.initExifTool();
 
       for (const row of csvData) {
         try {
-          const imagePath = path.resolve(imageDir, row.Filename).replace(/\\/g, '/');
+          // Keep native path separators — do not force POSIX slashes on Windows.
+          const imagePath = path.resolve(imageDir, row.Filename);
           console.log('處理圖片：', imagePath);
 
           const canAccess = await this.checkFileAccess(imagePath);
@@ -262,47 +162,11 @@ export class MetadataService extends BaseService {
 
           const ext = path.extname(imagePath).toLowerCase();
           const isVideo = ext === '.mp4';
-          // Prefer list form so ExifTool writes multi-value tags correctly.
-          // PNG viewers (Preview/Finder/stock sites) typically surface XMP-dc:Subject,
-          // not IPTC:Keywords — bare "Keywords" alone is easy to "miss" on PNG.
-          const keywordList = row.Keywords.split(',')
-            .map(k => k.trim())
-            .filter(Boolean);
+          const { keywordList, tags } = buildWriteTags(row, isVideo);
 
-          const metadata = isVideo
-            ? {
-                Title: row.Title,
-                Description: row.Description,
-                Keywords: keywordList,
-                'QuickTime:Title': row.Title,
-                'QuickTime:Description': row.Description,
-                'XMP-dc:Title': row.Title,
-                'XMP-dc:Description': row.Description,
-                'XMP-dc:Subject': keywordList,
-              }
-            : {
-                Title: row.Title,
-                Description: row.Description,
-                Keywords: keywordList,
-                // XMP (works for JPEG + PNG; what most tools show as "keywords" on PNG)
-                'XMP-dc:Title': row.Title,
-                'XMP-dc:Description': row.Description,
-                'XMP-dc:Subject': keywordList,
-                // IPTC (common for JPEG stock/DAM; ExifTool can also attach to PNG)
-                'IPTC:ObjectName': row.Title,
-                'IPTC:Caption-Abstract': row.Description,
-                'IPTC:Keywords': keywordList,
-              };
+          console.log('準備寫入元數據：', tags);
 
-          console.log('準備寫入元數據：', metadata);
-
-          let writtenMetadata;
-          if (process.platform === 'win32') {
-            writtenMetadata = await this.writeMetadataWindows(imagePath, metadata);
-          } else {
-            await this.writeMetadataMacOS(imagePath, metadata);
-            writtenMetadata = await this.exiftool?.read(imagePath);
-          }
+          const writtenMetadata = await this.writeOneFile(imagePath, tags);
 
           results.push({
             filename: row.Filename,
@@ -321,7 +185,7 @@ export class MetadataService extends BaseService {
           results.push({
             filename: row.Filename,
             success: false,
-            error: error instanceof Error ? error.message : '處理失敗',
+            error: formatWriteError(error),
           });
         }
       }
