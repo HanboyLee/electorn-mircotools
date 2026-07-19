@@ -1,0 +1,35 @@
+%% LLM 圖片分析 · 信息架構與用戶流程
+%% 渲染：GitHub / VS Code Mermaid / https://mermaid.live
+
+flowchart TB
+  subgraph Entry["進入頁面"]
+    A[側欄 / 快捷：LLM 圖片分析] --> B{當前 Provider 就緒?}
+  end
+
+  B -->|否| C[頂部 Warning Alert<br/>前往設置]
+  B -->|是| D[就緒徽章：Provider + 模型]
+
+  C --> E[設置頁配置密鑰/模型]
+  E --> B
+
+  D --> F[可選：展開編輯分析提示詞]
+  F --> G[拖放 / 選擇多張圖片]
+  G --> H{隊列 ≥ 1?}
+
+  H -->|否| I[主 CTA 禁用<br/>就緒檢查缺圖片]
+  H -->|是| J[就緒檢查全綠<br/>主 CTA 可點]
+
+  J --> K[點擊「開始分析」]
+  K --> L[底部 CTA loading<br/>Progress n/total]
+  L --> M[逐張：排隊 → 分析中 → 成功/失敗]
+  M --> N{還有下一張?}
+  N -->|是| M
+  N -->|否| O[結果摘要 + 表格]
+
+  O --> P[導出 CSV]
+  O --> Q[清除隊列 — 需確認]
+  O --> R[可繼續加圖或重跑]
+
+  style K fill:#4B9FE1,color:#fff
+  style O fill:#F0FDF4
+  style C fill:#FFFBEB

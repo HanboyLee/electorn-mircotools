@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LLM 圖片分析 · UI 原型</title>
+  <style>
+    :root {
+      --primary: #4B9FE1;
+      --primary-hover: #3A8FD0;
+      --primary-soft: #E8F3FF;
+      --layout-bg: #F0F4F8;
+      --card: #FFFFFF;
+      --text: #1F2937;
+      --text-secondary: #6B7280;
+      --border: #E5E7EB;
+      --success: #16A34A;
+      --success-bg: #F0FDF4;
+      --warning: #D97706;
+      --warning-bg: #FFFBEB;
+      --error: #DC2626;
+      --error-bg: #FEF2F2;
+      --muted: #F9FAFB;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --sidebar-w: 200px;
+      --titlebar-h: 32px;
+      --actionbar-h: 64px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: #1a1a1a;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    .doc-header {
+      width: min(1180px, 100%);
+      color: #e5e7eb;
+      margin-bottom: 16px;
+    }
+    .doc-header h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    .doc-header p { font-size: 13px; color: #9ca3af; line-height: 1.5; }
+    .doc-header code {
+      background: #374151; padding: 1px 6px; border-radius: 4px; font-size: 12px;
+    }
+
+    .scene-switch {
+      width: min(1180px, 100%);
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .scene-switch button {
+      border: 1px solid #4b5563;
+      background: #111827;
+      color: #e5e7eb;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+    .scene-switch button:hover { border-color: var(--primary); color: #fff; }
+    .scene-switch button.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      height: 760px;
+      background: var(--layout-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,.45);
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      grid-template-rows: var(--titlebar-h) 1fr;
+      position: relative;
+    }
+
+    .titlebar {
+      grid-column: 1 / -1;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 13px;
+    }
+    .titlebar .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+    .titlebar .dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+    }
+    .win-btns { display: flex; gap: 4px; color: var(--text-secondary); font-size: 12px; }
+    .win-btns span {
+      width: 28px; height: 24px; display: grid; place-items: center; border-radius: 4px;
+    }
+
+    .sidebar {
+      background: #fff;
+      border-right: 1px solid var(--border);
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .nav-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: default;
+    }
+    .nav-item.active {
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      background: var(--layout-bg);
+    }
+
+    .scroll {
+      flex: 1;
+      overflow: auto;
+      padding: 20px 20px 12px;
+      padding-bottom: calc(var(--actionbar-h) + 16px);
+    }
+
+    .page-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .page-header h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    .page-header .sub { font-size: 13px; color: var(--text-secondary); line-height: 1.45; max-width: 520px; }
+
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 999px; font-size: 12px;
+      border: 1px solid var(--border); background: #fff;
+    }
+    .badge.ok { background: var(--success-bg); border-color: #bbf7d0; color: var(--success); }
+    .badge.warn { background: var(--warning-bg); border-color: #fde68a; color: var(--warning); }
+    .badge .dot {
+      width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 13px; font-weight: 600; margin-bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .card-title .muted { font-weight: 400; color: var(--text-secondary); font-size: 12px; }
+
+    .alert {
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .alert.warn { background: var(--warning-bg); border: 1px solid #fde68a; color: #92400e; }
+    .alert .actions { margin-top: 8px; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.4fr 0.9fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 900px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .dropzone {
+      border: 1.5px dashed #c5cdd6;
+      border-radius: 10px;
+      background: var(--muted);
+      padding: 20px 12px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      margin-bottom: 12px;
+    }
+    .dropzone:hover { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+    .dropzone .icon { font-size: 22px; margin-bottom: 6px; opacity: .7; }
+
+    .queue-toolbar {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      margin-bottom: 10px;
+    }
+    .queue-toolbar input[type="search"] {
+      flex: 1; min-width: 140px;
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 6px 10px; font-size: 12px; font-family: inherit;
+    }
+    .seg {
+      display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+    }
+    .seg button {
+      border: none; background: #fff; padding: 5px 10px; font-size: 11px;
+      cursor: pointer; color: var(--text-secondary); font-family: inherit;
+    }
+    .seg button.on { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+
+    .queue-viewport {
+      max-height: 280px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      padding: 8px;
+    }
+    .queue-viewport.list-mode { padding: 0; }
+    .queue-foot {
+      margin-top: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.4;
+    }
+
+    .thumbs {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 10px;
+    }
+    .thumbs.compact {
+      grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+      gap: 6px;
+    }
+    .thumbs.compact .thumb .ph { height: 52px; font-size: 10px; }
+    .thumbs.compact .thumb .meta { padding: 4px 6px; }
+    .thumbs.compact .thumb .name { font-size: 10px; }
+
+    .file-list { display: flex; flex-direction: column; }
+    .file-row {
+      display: grid;
+      grid-template-columns: 40px 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .file-row:last-child { border-bottom: none; }
+    .file-row .mini {
+      width: 40px; height: 40px; border-radius: 6px;
+      background: linear-gradient(135deg, #dbeafe, #e0e7ff);
+      display: grid; place-items: center;
+      font-size: 9px; font-weight: 700; color: #64748b;
+    }
+    .file-row .mini.ok { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
+    .file-row .mini.err { background: linear-gradient(135deg, #fee2e2, #fecaca); }
+    .file-row .mini.run { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+    .file-row .fname {
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .file-row .rm {
+      border: none; background: transparent; color: var(--text-secondary);
+      cursor: pointer; font-size: 14px; padding: 4px 6px;
+    }
+
+    .thumb {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+      position: relative;
+    }
+    .thumb .ph {
+      height: 72px;
+      background: linear-gradient(135deg, #dbeafe, #e0e7ff);
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .thumb .ph.err { background: linear-gradient(135deg, #fee2e2, #fecaca); }
+    .thumb .ph.run { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+    .thumb .ph.ok { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
+    .thumb .meta { padding: 6px 8px; }
+    .thumb .name {
+      font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .tag.pending { background: #f3f4f6; color: #6b7280; }
+    .tag.running { background: #dbeafe; color: #1d4ed8; }
+    .tag.ok { background: #dcfce7; color: #15803d; }
+    .tag.fail { background: #fee2e2; color: #b91c1c; }
+
+    .checklist { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .checklist li {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 13px; line-height: 1.4;
+    }
+    .check {
+      width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+      display: grid; place-items: center; font-size: 11px; font-weight: 700;
+      margin-top: 1px;
+    }
+    .check.ok { background: var(--success-bg); color: var(--success); border: 1px solid #bbf7d0; }
+    .check.no { background: #f3f4f6; color: #9ca3af; border: 1px solid var(--border); }
+    .check.warn { background: var(--warning-bg); color: var(--warning); border: 1px solid #fde68a; }
+
+    .progress-wrap { margin-top: 8px; }
+    .progress-label {
+      display: flex; justify-content: space-between;
+      font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;
+    }
+    .progress-bar {
+      height: 8px; border-radius: 999px; background: #e5e7eb; overflow: hidden;
+    }
+    .progress-bar > i {
+      display: block; height: 100%; background: var(--primary);
+      border-radius: 999px; transition: width .2s ease;
+    }
+
+    .prompt-summary {
+      font-size: 12px; color: var(--text-secondary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      background: var(--muted); border-radius: 6px; padding: 8px 10px;
+      border: 1px solid var(--border);
+    }
+    .prompt-editor {
+      width: 100%; min-height: 96px; resize: vertical;
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px; font: inherit; font-size: 13px; line-height: 1.5;
+      color: var(--text);
+    }
+    .prompt-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+    .stats {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin-bottom: 12px;
+    }
+    .stat {
+      background: var(--muted); border-radius: 8px; padding: 10px;
+      border: 1px solid var(--border); text-align: center;
+    }
+    .stat .n { font-size: 20px; font-weight: 700; line-height: 1.2; }
+    .stat .l { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .stat.ok .n { color: var(--success); }
+    .stat.fail .n { color: var(--error); }
+
+    table.results {
+      width: 100%; border-collapse: collapse; font-size: 12px;
+    }
+    table.results th, table.results td {
+      text-align: left; padding: 8px 10px;
+      border-bottom: 1px solid var(--border); vertical-align: top;
+    }
+    table.results th {
+      font-size: 11px; color: var(--text-secondary); font-weight: 600;
+      background: var(--muted);
+    }
+    table.results .kw {
+      display: inline-block; background: #eef2ff; color: #4338ca;
+      border-radius: 4px; padding: 1px 6px; margin: 1px 2px 1px 0; font-size: 11px;
+    }
+    .hint {
+      font-size: 12px; color: var(--text-secondary); margin-top: 8px;
+    }
+
+    .actionbar {
+      position: absolute;
+      left: var(--sidebar-w);
+      right: 0;
+      bottom: 0;
+      height: var(--actionbar-h);
+      background: rgba(255,255,255,.96);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      gap: 12px;
+      backdrop-filter: blur(8px);
+    }
+    .actionbar .left, .actionbar .right { display: flex; gap: 8px; align-items: center; }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      font-size: 13px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .15s ease;
+      font-family: inherit;
+    }
+    .btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn.primary {
+      background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600;
+      min-width: 120px;
+    }
+    .btn.primary:hover:not(:disabled) { background: var(--primary-hover); color: #fff; }
+    .btn.ghost { background: transparent; }
+    .btn.link {
+      border: none; background: transparent; color: var(--primary);
+      padding: 0; font-size: 12px; cursor: pointer;
+    }
+    .btn.sm { padding: 4px 10px; font-size: 12px; }
+
+    .hidden { display: none !important; }
+
+    .legend {
+      width: min(1180px, 100%);
+      margin-top: 16px;
+      color: #9ca3af;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .legend strong { color: #d1d5db; }
+  </style>
+</head>
+<body>
+  <header class="doc-header">
+    <h1>LLM 圖片分析 · UI 原型</h1>
+    <p>
+      設計依據 <code>ui-ux-pro-max</code> · 文檔 <code>docs/ImageAnalysis/</code> ·
+      色板映射現有主題 Primary <code>#4B9FE1</code>（不硬套 Skill teal）
+    </p>
+  </header>
+
+  <div class="scene-switch" id="scenes" role="tablist" aria-label="原型場景">
+    <button type="button" data-scene="noapi" class="active">1. 未配置 API</button>
+    <button type="button" data-scene="ready">2. 就緒（少量 · 列表）</button>
+    <button type="button" data-scene="running">3. 分析中</button>
+    <button type="button" data-scene="done">4. 結果</button>
+    <button type="button" data-scene="prompt">5. 提示詞展開</button>
+    <button type="button" data-scene="many">6. 就緒 · 大量圖片</button>
+  </div>
+
+  <div class="app" aria-label="應用原型">
+    <div class="titlebar">
+      <div class="brand"><span class="dot"></span> metadata-app</div>
+      <div class="win-btns"><span>─</span><span>□</span><span>×</span></div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="nav-item">首頁</div>
+      <div class="nav-item">元數據寫入</div>
+      <div class="nav-item active">LLM 圖片分析</div>
+      <div class="nav-item">文件打包</div>
+      <div class="nav-item">設置</div>
+    </aside>
+
+    <section class="main">
+      <div class="scroll">
+        <div class="page-header">
+          <div>
+            <h2>LLM 圖片分析</h2>
+            <p class="sub">批量分析圖片，生成標題、描述與關鍵詞，並可導出 CSV 供後續元數據寫入使用。</p>
+          </div>
+          <div class="badge-row" id="providerBadges"></div>
+        </div>
+
+        <div id="apiAlert" class="alert warn hidden">
+          <div>
+            <strong>尚未配置可用的 API</strong>
+            <div>請先在設置頁配置 OpenAI 或 OpenRouter 密鑰（OpenRouter 還需選擇模型），才能開始分析。</div>
+            <div class="actions"><button type="button" class="btn primary sm">前往設置</button></div>
+          </div>
+        </div>
+
+        <!-- 提示詞 -->
+        <div class="card" id="promptCard">
+          <div class="card-title">
+            <span>分析提示詞 <span class="muted">指導 AI 如何生成結果</span></span>
+            <button type="button" class="btn link" id="promptToggle">展開編輯</button>
+          </div>
+          <div id="promptCollapsed">
+            <div class="prompt-summary" title="full prompt">
+              請分析圖片並以 JSON 返回 title、description、keywords。關鍵詞用逗號分隔，描述簡潔專業…
+            </div>
+          </div>
+          <div id="promptExpanded" class="hidden">
+            <textarea class="prompt-editor" aria-label="分析提示詞">請分析圖片並以 JSON 返回 title、description、keywords。關鍵詞用逗號分隔，描述簡潔專業，適合圖庫素材標註。</textarea>
+            <div class="prompt-actions">
+              <button type="button" class="btn primary sm">保存</button>
+              <button type="button" class="btn sm">取消</button>
+              <button type="button" class="btn ghost sm">恢復默認</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- 隊列 -->
+          <div class="card">
+            <div class="card-title">
+              <span>圖片隊列 <span class="muted" id="queueCount">0 張</span></span>
+            </div>
+            <div class="dropzone" id="dropzone">
+              <div class="icon">⇧</div>
+              <div>拖放圖片到此，或點擊選擇</div>
+              <div style="font-size:11px;margin-top:4px;opacity:.8">支援 jpg / png / webp / gif · 可多選</div>
+            </div>
+            <div class="queue-toolbar hidden" id="queueToolbar">
+              <input type="search" id="queueSearch" placeholder="搜尋文件名…" disabled title="原型示意：N≥25 顯示" />
+            </div>
+            <div class="queue-viewport list-mode" id="queueViewport">
+              <div class="file-list" id="fileList"></div>
+            </div>
+            <p class="queue-foot" id="queueFoot"></p>
+          </div>
+
+          <!-- 就緒 -->
+          <div class="card">
+            <div class="card-title">就緒檢查</div>
+            <ul class="checklist" id="checklist"></ul>
+            <div class="progress-wrap hidden" id="progressBlock">
+              <div class="progress-label">
+                <span id="progressText">正在分析 0/0</span>
+                <span id="progressPct">0%</span>
+              </div>
+              <div class="progress-bar"><i id="progressFill" style="width:0%"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 結果 -->
+        <div class="card hidden" id="resultsCard">
+          <div class="card-title">
+            <span>分析結果</span>
+            <span class="muted">可將 CSV 用於「元數據寫入」</span>
+          </div>
+          <div class="stats" id="stats"></div>
+          <div style="overflow:auto">
+            <table class="results" id="resultsTable">
+              <thead>
+                <tr>
+                  <th>文件</th>
+                  <th>標題</th>
+                  <th>描述</th>
+                  <th>關鍵詞</th>
+                  <th>狀態</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p class="hint" id="resultsHint"></p>
+        </div>
+      </div>
+
+      <div class="actionbar">
+        <div class="left">
+          <button type="button" class="btn" id="btnClear">清除隊列</button>
+          <button type="button" class="btn" id="btnExport">導出 CSV</button>
+        </div>
+        <div class="right">
+          <button type="button" class="btn primary" id="btnRun">開始分析</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <p class="legend">
+    <strong>場景說明：</strong>
+    1 未配置 API — Alert + CTA 禁用；
+    2 就緒（少量）— 4 張<strong>始終列表</strong>；
+    3 分析中 — 2/4 進度（列表狀態）；
+    4 結果 — 3 成功 1 失敗 + 摘要；
+    5 提示詞展開編輯態；
+    6 <strong>就緒 · 大量</strong> — 共 128 張，始終列表 + 限高滾動 + 搜尋 / 虛擬列表示意。
+    確認設計後再改 <code>src/pages/AnalyzeByImage/</code>。
+  </p>
+
+  <script>
+    const SCENES = {
+      noapi: {
+        apiReady: false,
+        provider: 'openai',
+        model: null,
+        promptOpen: false,
+        analyzing: false,
+        progress: null,
+        files: [],
+        results: null,
+      },
+      ready: {
+        apiReady: true,
+        provider: 'openrouter',
+        model: 'openai/gpt-4o-mini',
+        promptOpen: false,
+        analyzing: false,
+        progress: null,
+        files: [
+          { name: 'beach-01.jpg', status: 'pending' },
+          { name: 'product-box.png', status: 'pending' },
+          { name: 'city-night.webp', status: 'pending' },
+          { name: 'logo-draft.jpg', status: 'pending' },
+        ],
+        results: null,
+      },
+      running: {
+        apiReady: true,
+        provider: 'openrouter',
+        model: 'openai/gpt-4o-mini',
+        promptOpen: false,
+        analyzing: true,
+        progress: { done: 2, total: 4, current: 'city-night.webp' },
+        files: [
+          { name: 'beach-01.jpg', status: 'ok' },
+          { name: 'product-box.png', status: 'ok' },
+          { name: 'city-night.webp', status: 'running' },
+          { name: 'logo-draft.jpg', status: 'pending' },
+        ],
+        results: null,
+      },
+      done: {
+        apiReady: true,
+        provider: 'openai',
+        model: null,
+        promptOpen: false,
+        analyzing: false,
+        progress: null,
+        files: [
+          { name: 'beach-01.jpg', status: 'ok' },
+          { name: 'product-box.png', status: 'ok' },
+          { name: 'city-night.webp', status: 'ok' },
+          { name: 'logo-draft.jpg', status: 'fail' },
+        ],
+        results: {
+          success: 3,
+          fail: 1,
+          total: 4,
+          rows: [
+            {
+              name: 'beach-01.jpg',
+              title: 'Sunset Beach Coastline',
+              desc: 'Golden hour waves along a sandy shore with soft clouds.',
+              kws: ['beach', 'sunset', 'ocean', 'travel'],
+              status: 'ok',
+            },
+            {
+              name: 'product-box.png',
+              title: 'Minimal Product Packaging',
+              desc: 'Clean studio shot of a matte carton on neutral background.',
+              kws: ['product', 'packaging', 'studio'],
+              status: 'ok',
+            },
+            {
+              name: 'city-night.webp',
+              title: 'Neon City Night Skyline',
+              desc: 'Urban high-rises with light trails under a deep blue sky.',
+              kws: ['city', 'night', 'skyline', 'urban'],
+              status: 'ok',
+            },
+            {
+              name: 'logo-draft.jpg',
+              title: '—',
+              desc: '—',
+              kws: [],
+              status: 'fail',
+              error: 'API rate limit exceeded (429)',
+            },
+          ],
+        },
+      },
+      prompt: {
+        apiReady: true,
+        provider: 'openai',
+        model: null,
+        promptOpen: true,
+        analyzing: false,
+        progress: null,
+        files: [
+          { name: 'beach-01.jpg', status: 'pending' },
+          { name: 'product-box.png', status: 'pending' },
+        ],
+        results: null,
+      },
+      many: {
+        apiReady: true,
+        provider: 'openrouter',
+        model: 'openai/gpt-4o-mini',
+        promptOpen: false,
+        analyzing: false,
+        progress: null,
+        manyMode: true,
+        totalCount: 128,
+        // 原型只渲染示意行；真實實現用虛擬列表只掛載視口內 DOM
+        files: Array.from({ length: 40 }, (_, i) => ({
+          name: `stock_${String(i + 1).padStart(3, '0')}.jpg`,
+          status: 'pending',
+        })),
+        results: null,
+      },
+    };
+
+    const tagLabel = {
+      pending: '待分析',
+      running: '分析中',
+      ok: '成功',
+      fail: '失敗',
+    };
+
+    function render(sceneKey) {
+      const s = SCENES[sceneKey];
+      const badges = document.getElementById('providerBadges');
+      const apiAlert = document.getElementById('apiAlert');
+      const thumbs = document.getElementById('thumbs');
+      const queueCount = document.getElementById('queueCount');
+      const checklist = document.getElementById('checklist');
+      const progressBlock = document.getElementById('progressBlock');
+      const resultsCard = document.getElementById('resultsCard');
+      const btnRun = document.getElementById('btnRun');
+      const btnClear = document.getElementById('btnClear');
+      const btnExport = document.getElementById('btnExport');
+      const promptCollapsed = document.getElementById('promptCollapsed');
+      const promptExpanded = document.getElementById('promptExpanded');
+      const promptToggle = document.getElementById('promptToggle');
+
+      // badges
+      if (s.apiReady) {
+        badges.innerHTML = `
+          <span class="badge ok"><span class="dot"></span>${s.provider === 'openai' ? 'OpenAI' : 'OpenRouter'} · 已配置</span>
+          ${s.model ? `<span class="badge">${s.model}</span>` : ''}
+        `;
+        apiAlert.classList.add('hidden');
+      } else {
+        badges.innerHTML = `<span class="badge warn"><span class="dot"></span>API 未就緒</span>`;
+        apiAlert.classList.remove('hidden');
+      }
+
+      // prompt
+      if (s.promptOpen) {
+        promptCollapsed.classList.add('hidden');
+        promptExpanded.classList.remove('hidden');
+        promptToggle.textContent = '收起';
+      } else {
+        promptCollapsed.classList.remove('hidden');
+        promptExpanded.classList.add('hidden');
+        promptToggle.textContent = '展開編輯';
+      }
+
+      // queue — 始終列表（無網格）
+      const totalN = s.totalCount || s.files.length;
+      const manyMode = !!s.manyMode;
+      const queueToolbar = document.getElementById('queueToolbar');
+      const fileList = document.getElementById('fileList');
+      const queueFoot = document.getElementById('queueFoot');
+
+      queueCount.textContent = `${totalN} 張`;
+      queueToolbar.classList.toggle('hidden', totalN < 25 && !manyMode);
+
+      fileList.innerHTML = s.files.map(f => {
+        const miniClass =
+          f.status === 'ok' ? 'ok' : f.status === 'fail' ? 'err' : f.status === 'running' ? 'run' : '';
+        return `
+        <div class="file-row">
+          <div class="mini ${miniClass}">IMG</div>
+          <div class="fname" title="${f.name}">${f.name}</div>
+          <span class="tag ${f.status}">${tagLabel[f.status]}</span>
+          <button type="button" class="rm" aria-label="移除" title="移除">×</button>
+        </div>`;
+      }).join('');
+
+      if (manyMode) {
+        queueFoot.innerHTML = `始終<strong>列表</strong> · 隊列區限高約 280px 區內滾動。原型渲染 ${s.files.length} 行示意；真實共 <strong>${totalN}</strong> 張時用<strong>虛擬列表</strong>。小縮略圖懶加載並 revoke。搜尋只過濾展示，分析仍針對全部 ${totalN} 張。`;
+      } else if (totalN === 0) {
+        queueFoot.textContent = '尚未加入圖片。';
+      } else {
+        queueFoot.textContent = `始終列表 · 區內滾動 · 分析將處理全部 ${totalN} 張`;
+      }
+
+      // checklist
+      const hasFiles = totalN > 0;
+      const items = [
+        { ok: s.apiReady, warn: !s.apiReady, label: s.apiReady ? 'API 已配置' : 'API 未配置（請前往設置）' },
+        { ok: true, label: '提示詞已就緒' },
+        { ok: hasFiles, label: hasFiles ? `已選擇 ${totalN} 張圖片` : '尚未選擇圖片' },
+      ];
+      checklist.innerHTML = items.map(it => `
+        <li>
+          <span class="check ${it.ok ? 'ok' : it.warn ? 'warn' : 'no'}">${it.ok ? '✓' : '!'}</span>
+          <span>${it.label}</span>
+        </li>
+      `).join('');
+
+      // progress
+      if (s.progress) {
+        progressBlock.classList.remove('hidden');
+        const pct = Math.round((s.progress.done / s.progress.total) * 100);
+        document.getElementById('progressText').textContent =
+          `正在分析 ${s.progress.done}/${s.progress.total} · ${s.progress.current}`;
+        document.getElementById('progressPct').textContent = `${pct}%`;
+        document.getElementById('progressFill').style.width = `${pct}%`;
+      } else {
+        progressBlock.classList.add('hidden');
+      }
+
+      // results
+      if (s.results) {
+        resultsCard.classList.remove('hidden');
+        document.getElementById('stats').innerHTML = `
+          <div class="stat"><div class="n">${s.results.total}</div><div class="l">合計</div></div>
+          <div class="stat ok"><div class="n">${s.results.success}</div><div class="l">成功</div></div>
+          <div class="stat fail"><div class="n">${s.results.fail}</div><div class="l">失敗</div></div>
+          <div class="stat"><div class="n">${Math.round((s.results.success / s.results.total) * 100)}%</div><div class="l">成功率</div></div>
+        `;
+        const tbody = document.querySelector('#resultsTable tbody');
+        tbody.innerHTML = s.results.rows.map(r => `
+          <tr>
+            <td>${r.name}</td>
+            <td>${r.title}</td>
+            <td>${r.status === 'fail' ? `<span style="color:var(--error)">${r.error}</span>` : r.desc}</td>
+            <td>${(r.kws || []).map(k => `<span class="kw">${k}</span>`).join('') || '—'}</td>
+            <td><span class="tag ${r.status}">${tagLabel[r.status]}</span></td>
+          </tr>
+        `).join('');
+        document.getElementById('resultsHint').textContent =
+          s.results.fail ? '失敗項不會寫入 CSV；可調整提示詞或稍後重試。' : '全部成功，可導出 CSV。';
+      } else {
+        resultsCard.classList.add('hidden');
+      }
+
+      // actions
+      const canRun = s.apiReady && hasFiles && !s.analyzing;
+      btnRun.disabled = !canRun && !s.analyzing;
+      btnRun.textContent = s.analyzing ? '分析中…' : '開始分析';
+      if (s.analyzing) {
+        btnRun.disabled = true;
+        btnRun.classList.add('primary');
+      }
+      btnClear.disabled = !hasFiles || s.analyzing;
+      btnExport.disabled = !(s.results && s.results.success > 0);
+    }
+
+    document.querySelectorAll('#scenes button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#scenes button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        render(btn.dataset.scene);
+      });
+    });
+
+    document.getElementById('promptToggle').addEventListener('click', () => {
+      const active = document.querySelector('#scenes button.active')?.dataset.scene || 'ready';
+      // local toggle without leaving scene intent
+      const collapsed = document.getElementById('promptCollapsed');
+      const expanded = document.getElementById('promptExpanded');
+      const toggle = document.getElementById('promptToggle');
+      const open = expanded.classList.contains('hidden');
+      if (open) {
+        collapsed.classList.add('hidden');
+        expanded.classList.remove('hidden');
+        toggle.textContent = '收起';
+      } else {
+        collapsed.classList.remove('hidden');
+        expanded.classList.add('hidden');
+        toggle.textContent = '展開編輯';
+      }
+    });
+
+    document.getElementById('btnClear').addEventListener('click', () => {
+      if (!document.getElementById('btnClear').disabled) {
+        alert('原型：實際實現為 Modal 二次確認後清空隊列與結果。');
+      }
+    });
+
+    render('noapi');
+  </script>
+</body>
+</html>

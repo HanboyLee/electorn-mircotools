@@ -1,162 +1,207 @@
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  Alert,
+  Badge,
+  Button,
+  Col,
+  Modal,
+  Row,
+  Space,
+  Typography,
+  message,
+  theme,
+} from 'antd';
+import {
+  DownloadOutlined,
+  PlayCircleOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
 import styled from 'styled-components';
-import { Button, Card, Space, Typography, Upload, message, Spin, Alert, Divider } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
-import type { UploadFile } from 'antd/es/upload/interface';
+import { useNavigate } from 'react-router-dom';
 import { AnalysisResults } from './components/AnalysisResults';
 import PromptEditor from './components/PromptEditor';
+import { ImageQueue } from './components/ImageQueue';
+import { ReadyChecklist } from './components/ReadyChecklist';
 import { analyzeImageWithProvider } from './services/imageAnalysis';
 import { exportToCsv } from './utils/csv';
 import { useSettingsStore } from '@/hooks/SettingsStore';
-import { useNavigate } from 'react-router-dom';
+import { getAnalyzeBlockReason, getApiReadyStatus } from './logic/apiReady';
+import { mergeQueueItems, type QueueItem } from './logic/queueItem';
+import type { AnalysisResult } from './types';
 
 const { Title, Text } = Typography;
-
-// 用於追蹤已經顯示過警告的文件名（移到組件外部以保持狀態）
-const warnedFiles = new Set<string>();
 
 export default function Page() {
   const { settings } = useSettingsStore();
   const navigate = useNavigate();
-  const [state, setState] = useState({
-    analyzing: false,
-    selectedFiles: [] as File[],
-    results: {} as Record<string, any>,
-    errors: {} as Record<string, string | undefined>,
-  });
+  const { token } = theme.useToken();
 
-  const handleFileSelect = (info: any) => {
-    if (info.file.status !== 'removed') {
-      // 檢查是否有重複文件名
-      const newFileList = info.fileList.reduce((acc: UploadFile[], current: UploadFile) => {
-        const isDuplicate = acc.some(file => file.name === current.name);
-        if (isDuplicate && !warnedFiles.has(current.name)) {
-          message.warning(`文件 "${current.name}" 已存在，已自動跳過`);
-          warnedFiles.add(current.name);
-          return acc;
-        }
-        if (!isDuplicate) {
-          return [...acc, current];
-        }
-        return acc;
-      }, []);
+  const [items, setItems] = useState<QueueItem[]>([]);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [results, setResults] = useState<Record<string, AnalysisResult | null>>({});
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+  const [progress, setProgress] = useState<{
+    done: number;
+    total: number;
+    current: string | null;
+  } | null>(null);
 
-      // 更新 fileList 以移除重複項
-      info.fileList = newFileList;
+  const api = useMemo(() => getApiReadyStatus(settings), [settings]);
+  const successCount = useMemo(
+    () => Object.values(results).filter(r => r != null).length,
+    [results]
+  );
 
-      setState(prev => ({
-        ...prev,
-        selectedFiles: newFileList.map((file: UploadFile) => file.originFileObj),
-        results: {},
-        errors: {},
-      }));
+  const canRun = api.ready && items.length > 0 && !analyzing;
+
+  const handleAddFiles = useCallback((files: File[]) => {
+    const imageFiles = files.filter(f => f.type.startsWith('image/') || /\.(jpe?g|png|webp|gif)$/i.test(f.name));
+    if (!imageFiles.length) {
+      message.warning('未找到可分析的圖片文件');
+      return;
     }
+    setItems(prev => {
+      const { next, skippedNames } = mergeQueueItems(prev, imageFiles);
+      if (skippedNames.length) {
+        const sample = skippedNames.slice(0, 3).join('、');
+        message.warning(
+          skippedNames.length === 1
+            ? `文件「${sample}」已在隊列中，已跳過`
+            : `${skippedNames.length} 個重複文件已跳過（如 ${sample}）`
+        );
+      }
+      return next;
+    });
+  }, []);
+
+  const handleRemove = useCallback((id: string) => {
+    setItems(prev => prev.filter(i => i.id !== id));
+  }, []);
+
+  const handleClear = () => {
+    Modal.confirm({
+      title: '清除隊列？',
+      content: '將清空已選圖片與分析結果，此操作不可復原。',
+      okText: '清除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: () => {
+        setItems([]);
+        setResults({});
+        setErrors({});
+        setProgress(null);
+      },
+    });
   };
 
   const handleAnalyze = async () => {
-    if (!settings.openaiApiKey) {
-      message.error('請先在設置頁面配置 OpenAI API 密鑰');
+    const block = getAnalyzeBlockReason(settings);
+    if (block) {
+      message.error(block);
       navigate('/settings');
       return;
     }
-
-    // 檢查是否有設置 API 提供者
-    const apiProvider = settings.apiProvider || 'openai';
-
-    // 檢查相應的 API 密鑰
-    if (apiProvider === 'openai') {
-      if (!settings.openaiApiKey) {
-        message.error('請先在設置中配置 OpenAI API 密鑰');
-        navigate('/settings');
-        return;
-      }
-
-      if (!settings.openaiApiKey.startsWith('sk-')) {
-        message.error('無效的 OpenAI API 密鑰格式，請在設置頁面重新配置');
-        navigate('/settings');
-        return;
-      }
-    } else if (apiProvider === 'openrouter') {
-      if (!settings.openrouterApiKey) {
-        message.error('請先在設置中配置 OpenRouter API 密鑰');
-        navigate('/settings');
-        return;
-      }
-
-      // 如果是 OpenRouter，還需要檢查是否選擇了模型
-      if (!settings.selectedModel) {
-        message.error('請先在設置中選擇一個 OpenRouter 模型');
-        navigate('/settings');
-        return;
-      }
+    if (items.length === 0) {
+      message.warning('請先選擇圖片');
+      return;
     }
 
-    setState(prev => ({ ...prev, analyzing: true }));
+    setAnalyzing(true);
+    setResults({});
+    setErrors({});
+    setItems(prev => prev.map(i => ({ ...i, status: 'pending' as const })));
 
-    console.log('当前使用的提示詞:', settings.analysisPrompt);
-    
-    for (const file of state.selectedFiles) {
+    const total = items.length;
+    let done = 0;
+    setProgress({ done: 0, total, current: items[0]?.file.name ?? null });
+
+    // 使用快照，避免循環中 items 被改寫
+    const snapshot = [...items];
+
+    for (const item of snapshot) {
+      setItems(prev =>
+        prev.map(i => (i.id === item.id ? { ...i, status: 'running' as const } : i))
+      );
+      setProgress({ done, total, current: item.file.name });
+
       try {
-        console.log(`正在分析 ${file.name}...`);
-        const result = await analyzeImageWithProvider(file, settings);
-        setState(prev => ({
-          ...prev,
-          results: { ...prev.results, [file.name]: result },
-          errors: { ...prev.errors, [file.name]: undefined },
-        }));
-      } catch (error: any) {
-        console.error(`分析 ${file.name} 時出錯:`, error);
-        setState(prev => ({
-          ...prev,
-          results: { ...prev.results, [file.name]: null },
-          errors: { ...prev.errors, [file.name]: error.message },
-        }));
+        const result = await analyzeImageWithProvider(item.file, settings);
+        setResults(prev => ({ ...prev, [item.file.name]: result }));
+        setErrors(prev => ({ ...prev, [item.file.name]: undefined }));
+        setItems(prev =>
+          prev.map(i => (i.id === item.id ? { ...i, status: 'ok' as const } : i))
+        );
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        setResults(prev => ({ ...prev, [item.file.name]: null }));
+        setErrors(prev => ({ ...prev, [item.file.name]: msg }));
+        setItems(prev =>
+          prev.map(i => (i.id === item.id ? { ...i, status: 'fail' as const } : i))
+        );
       }
+
+      done += 1;
+      setProgress({ done, total, current: item.file.name });
     }
 
-    setState(prev => ({ ...prev, analyzing: false }));
+    setAnalyzing(false);
+    setProgress(prev => (prev ? { ...prev, current: null } : null));
+    message.success('本輪分析已完成');
   };
 
   const handleExportCsv = () => {
     try {
-      exportToCsv(state.results);
+      exportToCsv(results);
       message.success('CSV 導出成功');
-    } catch (error: any) {
-      message.error(error.message);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      message.error(msg);
     }
   };
 
-  const transformToRcFile = (file: File): UploadFile => ({
-    uid: file.name, // 你可以用 file.lastModified 來保證唯一性
-    name: file.name,
-    status: 'done',
-    url: URL.createObjectURL(file),
-    originFileObj: file as any, // 強制轉型為 RcFile
-  });
-
-  const handleClearSelectedFiles = () => {
-    // 清除內容包含：results 和 errors
-    setState(prev => ({ ...prev, selectedFiles: [], results: {}, errors: {} }));
-  };
-
   return (
-    <Card>
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <Title level={4}>LLM 圖片分析</Title>
+    <PageRoot>
+      <ScrollArea>
+        <PageHeader>
+          <div>
+            <Title level={4} style={{ margin: 0 }}>
+              LLM 圖片分析
+            </Title>
+            <Text type="secondary" style={{ fontSize: 13 }}>
+              批量分析圖片，生成標題、描述與關鍵詞，並可導出 CSV 供後續元數據寫入使用。
+            </Text>
+          </div>
+          <Space wrap>
+            {api.ready ? (
+              <Badge
+                status="success"
+                text={
+                  api.provider === 'openai'
+                    ? 'OpenAI · 已配置'
+                    : `OpenRouter · 已配置${api.model ? ` · ${api.model}` : ''}`
+                }
+              />
+            ) : (
+              <Badge status="warning" text="API 未就緒" />
+            )}
+          </Space>
+        </PageHeader>
 
-        {/* 提示詞編輯器 */}
-        <PromptEditor />
-        
-        <Divider style={{ margin: '12px 0' }} />
-
-        {!settings.openaiApiKey && (
+        {!api.ready && (
           <Alert
             type="warning"
-            message="未配置 OpenAI API 密鑰"
+            showIcon
+            style={{ marginBottom: 12 }}
+            message="尚未配置可用的 API"
             description={
-              <Space direction="vertical">
-                <Text>請先在設置頁面配置您的 OpenAI API 密鑰，以便進行圖片分析</Text>
-                <Button type="primary" onClick={() => navigate('/settings')}>
+              <Space direction="vertical" size={8}>
+                <Text>{api.reason}</Text>
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<SettingOutlined />}
+                  onClick={() => navigate('/settings')}
+                >
                   前往設置
                 </Button>
               </Space>
@@ -164,74 +209,91 @@ export default function Page() {
           />
         )}
 
+        {/* 提示詞：僅改 UI 摺疊，預設內容來自 Settings，不在此改寫 */}
+        <PromptEditor readOnly={analyzing} />
+
+        <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
+          <Col xs={24} lg={15}>
+            <ImageQueue
+              items={items}
+              analyzing={analyzing}
+              onAddFiles={handleAddFiles}
+              onRemove={handleRemove}
+            />
+          </Col>
+          <Col xs={24} lg={9}>
+            <ReadyChecklist
+              api={api}
+              imageCount={items.length}
+              analyzing={analyzing}
+              progress={progress}
+            />
+          </Col>
+        </Row>
+
+        <AnalysisResults items={items} results={results} errors={errors} />
+      </ScrollArea>
+
+      <ActionBar style={{ borderColor: token.colorBorderSecondary, background: token.colorBgContainer }}>
         <Space>
-          <Button
-            type="primary"
-            onClick={handleAnalyze}
-            loading={state.analyzing}
-            disabled={state.selectedFiles.length === 0 || !settings.openaiApiKey}
-          >
-            {state.analyzing ? '分析中...' : '開始分析'}
+          <Button onClick={handleClear} disabled={items.length === 0 || analyzing}>
+            清除隊列
           </Button>
-          <Button onClick={handleExportCsv} disabled={Object.keys(state.results).length === 0}>
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={handleExportCsv}
+            disabled={successCount === 0 || analyzing}
+          >
             導出 CSV
           </Button>
-          {/* 清除目前以上傳圖片，都沒有圖片也禁用 */}
-          <Button
-            onClick={handleClearSelectedFiles}
-            disabled={state.selectedFiles.length === 0 || state.analyzing}
-          >
-            清除上傳圖片
-          </Button>
         </Space>
-
-        <div style={{ width: '100%', marginTop: 16 }}>
-          <Upload
-            accept="image/*"
-            multiple
-            beforeUpload={() => false}
-            onChange={handleFileSelect}
-            showUploadList={{
-              showRemoveIcon: true,
-              showPreviewIcon: true,
-            }}
-            listType="text"
-            fileList={state.selectedFiles.map(transformToRcFile)}
-          >
-            <WrapperUpload
-              style={{
-                padding: 8,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <UploadOutlined style={{ fontSize: 24, color: '#666' }} />
-              <div className="upload-text" style={{ color: '#666' }}>
-                選擇圖片
-              </div>
-            </WrapperUpload>
-          </Upload>
-        </div>
-
-        {state.analyzing && (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <Spin size="large" />
-            <Text style={{ marginLeft: 8 }}>正在分析圖片...</Text>
-          </div>
-        )}
-
-        <AnalysisResults results={state.results} errors={state.errors} />
-      </Space>
-    </Card>
+        <Button
+          type="primary"
+          size="large"
+          icon={<PlayCircleOutlined />}
+          loading={analyzing}
+          disabled={!canRun && !analyzing}
+          onClick={handleAnalyze}
+        >
+          {analyzing ? '分析中…' : '開始分析'}
+        </Button>
+      </ActionBar>
+    </PageRoot>
   );
 }
 
-const WrapperUpload = styled.div`
-  background-color: #fff;
-  color: #000;
-  cursor: pointer;
-  border-radius: 4px;
-  border: 1px dashed #d9d9d9;
+const PageRoot = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  position: relative;
+  padding-bottom: 72px;
+`;
+
+const ScrollArea = styled.div`
+  flex: 1;
+  min-height: 0;
+`;
+
+const PageHeader = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+`;
+
+const ActionBar = styled.div`
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  margin: 0 -4px;
+  padding: 12px 16px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.04);
 `;

@@ -9,6 +9,7 @@
 ### 变更
 - `src/services` 按业务域重组：`_shared` / `platform` / `file-packaging` / `csv-validator`，统一经 `index` 出口；主进程与网络状态相关 import 改为从总出口引用（行为不变）
 - `.gitignore` 忽略本地目录 `.compound-engineering/`
+- LLM 圖片分析页 UI 改版：就绪检查（OpenAI/OpenRouter）、提示词默认折叠、始终列表队列（限高滚动）、分项进度、结果摘要表格与底部操作栏；**不修改**分析提示词预设内容（`docs/ImageAnalysis/` 设计文档）
 
 ## [1.3.6] - 2026-07-18
 
