@@ -1,10 +1,12 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 // Vite 會自動處理環境變數，不需要手動載入
-import { FileService } from '../services/fileService';
-import { MetadataService } from '../services/metadataService';
-import { NetworkService } from '../services/networkService';
-import { ZipService } from '../services/zipService';
-import { UpdateService } from '../services/updateService';
+import {
+  FileService,
+  MetadataService,
+  NetworkService,
+  ZipService,
+  UpdateService,
+} from '../services';
 
 import * as path from 'path';
 

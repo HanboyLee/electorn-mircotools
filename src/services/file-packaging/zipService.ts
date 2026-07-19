@@ -1,10 +1,10 @@
-import { BaseService } from './baseService';
-import { ZipIPC } from '../constants/ipc';
+import { BaseService } from '../_shared';
+import { ZipIPC } from '../../constants/ipc';
 import * as fs from 'fs';
 import * as path from 'path';
 import { shell } from 'electron';
 import { ServiceHandler } from '@/types/services';
-import { FileGroup, FileInfo, ZipResult } from '../types/zip';
+import { FileGroup, FileInfo, ZipResult } from '../../types/zip';
 import { v4 as uuidv4 } from 'uuid';
 // 必须用 ESM import，才能被 Vite 打进主进程 bundle；
 // require('archiver') 会保留为运行时外部依赖，而 Forge 又忽略了 node_modules → 安装包启动即崩。

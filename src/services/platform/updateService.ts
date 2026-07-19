@@ -5,8 +5,8 @@ import * as https from 'https';
 import * as path from 'path';
 import { URL } from 'url';
 
-import { BaseService } from './baseService';
-import { UpdateIPC } from '../constants/ipc';
+import { BaseService } from '../_shared';
+import { UpdateIPC } from '../../constants/ipc';
 import { ServiceHandler } from '@/types/services';
 import {
   UpdateCheckResult,

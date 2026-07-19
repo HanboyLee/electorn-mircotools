@@ -6,7 +6,9 @@
 
 ## [Unreleased]
 
-（暂无）
+### 变更
+- `src/services` 按业务域重组：`_shared` / `platform` / `file-packaging` / `csv-validator`，统一经 `index` 出口；主进程与网络状态相关 import 改为从总出口引用（行为不变）
+- `.gitignore` 忽略本地目录 `.compound-engineering/`
 
 ## [1.3.6] - 2026-07-18
 

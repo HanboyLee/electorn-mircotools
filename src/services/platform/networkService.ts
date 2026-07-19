@@ -1,5 +1,5 @@
-import { BaseService } from './baseService';
-import { IPC } from '../constants/ipc';
+import { BaseService } from '../_shared';
+import { IPC } from '../../constants/ipc';
 import { ServiceHandler } from '@/types/services';
 import { BrowserWindow, net } from 'electron';
 

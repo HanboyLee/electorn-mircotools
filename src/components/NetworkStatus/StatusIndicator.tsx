@@ -1,7 +1,7 @@
 import React from 'react';
 import { Typography, Tooltip } from 'antd';
 import { StatusContainer, StatusDot } from './styles';
-import { NetworkStatus } from '@/services/networkService';
+import { NetworkStatus } from '@/services';
 
 const { Text } = Typography;
 

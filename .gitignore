@@ -78,6 +78,7 @@ Thumbs.db
 .clinerules/
 .windsurfrules
 .windsurf/
+.compound-engineering/
 
 # Project agent instruction files
 AGENTS.md
@@ -86,6 +87,8 @@ AGENT.md
 CLAUDE.md
 CLAUDE.local.md
 Claude.md
+
+
 
 # OpenSpec
 openspec/

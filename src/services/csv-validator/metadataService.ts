@@ -1,6 +1,6 @@
-import { BaseService } from './baseService';
-import { MetadataIPC } from '../constants/ipc';
-import { WriteMetadataResult, CsvMetadataRow } from '../types/metadata';
+import { BaseService } from '../_shared';
+import { MetadataIPC } from '../../constants/ipc';
+import { WriteMetadataResult, CsvMetadataRow } from '../../types/metadata';
 import { promises as fs } from 'fs';
 import * as fsSync from 'fs';
 import * as path from 'path';

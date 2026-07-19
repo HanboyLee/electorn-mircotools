@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NetworkStatus } from '@/services/networkService';
+import { NetworkStatus } from '@/services';
 import { IPC } from '@/constants/ipc';
 
 export const useNetwork = () => {

@@ -1,5 +1,5 @@
-import { BaseService } from './baseService';
-import { FileIPC } from '../constants/ipc';
+import { BaseService } from '../_shared';
+import { FileIPC } from '../../constants/ipc';
 import { dialog } from 'electron';
 import { promises as fs } from 'fs';
 import * as path from 'path';
