@@ -1,594 +1,750 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Card, Table, message, Space, Input, Tooltip, Progress, Modal, Typography, Checkbox, theme } from 'antd';
-import { FolderOpenOutlined, FileZipOutlined, SearchOutlined, ReloadOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { FileGroup, ZipResult } from '../../types/zip';
-import { FileIPC, ZipIPC } from '../../constants/ipc';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  Alert,
+  Button,
+  Col,
+  Empty,
+  Input,
+  Modal,
+  Progress,
+  Row,
+  Space,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+  message,
+  theme,
+} from 'antd';
+import {
+  CheckCircleFilled,
+  ExclamationCircleFilled,
+  FileZipOutlined,
+  FolderOpenOutlined,
+  SearchOutlined,
+} from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
 import styled from 'styled-components';
-import { useSettingsStore } from '@/hooks/SettingsStore';
+import { FileGroup, ZipResult } from '@/types/zip';
+import { FileIPC, ZipIPC } from '@/constants/ipc';
+import {
+  filterFileGroups,
+  formatBytes,
+  groupExtensions,
+  groupFileCount,
+  groupRowKey,
+  groupTotalSize,
+  type GroupRowStatus,
+} from './logic/groupUtils';
 
 const { Title, Text } = Typography;
-const { Search } = Input;
+
+const SCAN_HINT = '.ai / .eps / .jpg / .png';
 
 const FilePackagingPage: React.FC = () => {
-  // 使用主題和設置
   const { token } = theme.useToken();
-  const { settings } = useSettingsStore();
-  
-  // 狀態管理
-  const [selectedDirectory, setSelectedDirectory] = useState<string>('');
+
+  const [selectedDirectory, setSelectedDirectory] = useState('');
   const [fileGroups, setFileGroups] = useState<FileGroup[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [searchText, setSearchText] = useState<string>('');
-  const [selectedRows, setSelectedRows] = useState<FileGroup[]>([]);
-  const [packagingProgress, setPackagingProgress] = useState<number>(0);
-  const [isPackaging, setIsPackaging] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [isPackaging, setIsPackaging] = useState(false);
+  const [progress, setProgress] = useState<{
+    done: number;
+    total: number;
+    current: string | null;
+  } | null>(null);
+  const [rowStatus, setRowStatus] = useState<Record<string, GroupRowStatus>>({});
   const [packagingResults, setPackagingResults] = useState<ZipResult[]>([]);
-  const [showResults, setShowResults] = useState<boolean>(false);
 
-  // 選擇目錄
-  const handleSelectDirectory = async () => {
-    try {
-      // 使用 FileIPC.SELECT_DIRECTORY 通道選擇目錄
-      const directoryPath = await window.electronAPI[FileIPC.SELECT_DIRECTORY]();
-      
-      console.log('選擇的目錄路徑:', directoryPath);
-      
-      if (directoryPath) {
-        // 設置選擇的目錄
-        setSelectedDirectory(directoryPath);
-        
-        // 選擇目錄後掃描文件
-        await scanDirectory(directoryPath);
-      } else {
-        console.log('用戶取消了選擇目錄');
-      }
-    } catch (error) {
-      console.error('選擇目錄時出錯:', error);
-      message.error('選擇目錄時出錯');
-      setLoading(false);
-    }
-  };
-  
-  // 確認打包
-  const handleConfirmPackage = () => {
-    if (!selectedDirectory) {
-      message.error('請先選擇目錄');
-      return;
-    }
-    
-    // 顯示確認對話框
-    Modal.confirm({
-      title: '確認打包路徑',
-      content: (
-        <div>
-          <p>是否將已選擇的路徑為以名稱對應的打包為zip包，在已選擇的路徑下？</p>
-          <p><strong>選擇的路徑：</strong> {selectedDirectory}</p>
-          <p><strong>找到的文件組：</strong> {fileGroups.length} 個</p>
-        </div>
-      ),
-      onOk: async () => {
-        try {
-          // 開始打包
-          setIsPackaging(true);
-          message.loading('正在打包文件...', 0);
-          
-          // 掃描完成後自動開始打包
-          await handleAutoPackage(selectedDirectory);
-          
-          message.destroy();
-          message.success('打包完成');
-          
-          // 重新掃描目錄，更新文件組列表
-          await scanDirectory(selectedDirectory);
-        } catch (error) {
-          console.error('打包時出錯:', error);
-          message.destroy();
-          message.error('打包時出錯');
-        } finally {
-          setIsPackaging(false);
-        }
-      },
-      okText: '確認打包',
-      cancelText: '取消'
-    });
-  };
+  const filteredGroups = useMemo(
+    () => filterFileGroups(fileGroups, searchText),
+    [fileGroups, searchText]
+  );
 
-  // 掃描目錄
-  const scanDirectory = async (directoryPath: string) => {
+  const successCount = useMemo(
+    () => packagingResults.filter(r => r.success).length,
+    [packagingResults]
+  );
+  const failCount = packagingResults.length - successCount;
+
+  const canPackAll = !!selectedDirectory && fileGroups.length > 0 && !isPackaging && !loading;
+
+  const scanDirectory = useCallback(async (directoryPath: string): Promise<FileGroup[]> => {
     if (!directoryPath) {
       message.error('請選擇有效的目錄');
       return [];
     }
-    
     try {
       setLoading(true);
-      console.log('開始掃描目錄:', directoryPath);
       const groups = await window.electronAPI[ZipIPC.SCAN_DIRECTORY](directoryPath);
-      console.log('掃描結果:', groups);
-      
-      // 確保設置文件組，即使是空數組
-      setFileGroups(groups || []);
-      
-      if (groups && groups.length > 0) {
-        message.success(`找到 ${groups.length} 個文件組`);
-        return groups;
+      const list = (groups || []).map(g => ({
+        ...g,
+        count: groupFileCount(g),
+      }));
+      setFileGroups(list);
+      setRowStatus({});
+      setPackagingResults([]);
+      setProgress(null);
+      if (list.length > 0) {
+        message.success(`找到 ${list.length} 個文件組`);
       } else {
         message.info('未找到可打包的文件組');
-        return [];
       }
+      return list;
     } catch (error) {
       console.error('掃描目錄時出錯:', error);
       message.error('掃描目錄時出錯');
+      setFileGroups([]);
       return [];
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // 重新掃描目錄
-  const handleRescan = async () => {
-    if (selectedDirectory) {
-      await scanDirectory(selectedDirectory);
-    } else {
-      message.warning('請先選擇一個目錄');
+  const handleSelectDirectory = async () => {
+    if (isPackaging) return;
+    try {
+      const directoryPath = await window.electronAPI[FileIPC.SELECT_DIRECTORY]();
+      if (!directoryPath) return;
+      setSelectedDirectory(directoryPath);
+      setSearchText('');
+      await scanDirectory(directoryPath);
+    } catch (error) {
+      console.error('選擇目錄時出錯:', error);
+      message.error('選擇目錄時出錯');
     }
   };
 
-  // 處理搜索
-  const handleSearch = (value: string) => {
-    setSearchText(value);
-  };
-
-  // 過濾文件組
-  const filteredFileGroups = fileGroups.filter(group => {
-    if (!searchText) return true;
-    return group.name.toLowerCase().includes(searchText.toLowerCase()) || 
-           group.files.some(file => file.name.toLowerCase().includes(searchText.toLowerCase()));
-  });
-
-  // 處理表格行選擇
-  const rowSelection = {
-    onChange: (selectedRowKeys: React.Key[], selectedRows: FileGroup[]) => {
-      setSelectedRows(selectedRows);
-    },
-  };
-
-  // 創建 ZIP 文件
-  const createZip = async (fileGroup: FileGroup) => {
+  const handleOpenDirectory = async () => {
+    if (!selectedDirectory) {
+      message.warning('請先選擇目錄');
+      return;
+    }
     try {
-      setIsPackaging(true);
-      setPackagingProgress(0);
-      
-      // 模擬進度
-      const timer = setInterval(() => {
-        setPackagingProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(timer);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
-      
-      const result = await window.electronAPI[ZipIPC.CREATE_ZIP](fileGroup);
-      
-      clearInterval(timer);
-      setPackagingProgress(100);
-      
-      if (result && result.success) {
-        message.success(`成功創建 ZIP 文件: ${result.outputPath}`);
-        return result;
-      } else {
-        message.error(`創建 ZIP 文件失敗: ${result?.message || '未知錯誤'}`);
-        return null;
+      const ok = await window.electronAPI[ZipIPC.OPEN_ITEM](selectedDirectory, true);
+      if (!ok) {
+        message.error('無法打開打包目錄');
       }
     } catch (error) {
-      console.error('創建 ZIP 文件時出錯:', error);
-      message.error('創建 ZIP 文件時出錯');
-      return null;
-    } finally {
-      setTimeout(() => {
-        setIsPackaging(false);
-        setPackagingProgress(0);
-      }, 500);
+      console.error('打開打包目錄時出錯:', error);
+      message.error('打開打包目錄時出錯');
     }
   };
 
-  // 處理打包單個文件組
-  const handlePackageSingle = async (fileGroup: FileGroup) => {
-    const result = await createZip(fileGroup);
-    if (result) {
-      setPackagingResults([result]);
-      setShowResults(true);
-    }
-  };
-
-  // 處理批量打包
-  const handleBatchPackage = async () => {
-    if (selectedRows.length === 0) {
-      message.warning('請至少選擇一個文件組');
+  const packAllGroups = async (groups: FileGroup[]) => {
+    const total = groups.length;
+    if (total === 0) {
+      message.info('沒有可打包的文件組');
       return;
     }
 
+    setIsPackaging(true);
+    setPackagingResults([]);
+    setProgress({ done: 0, total, current: groups[0]?.name ?? null });
+
+    const initialStatus: Record<string, GroupRowStatus> = {};
+    groups.forEach(g => {
+      initialStatus[groupRowKey(g)] = 'pending';
+    });
+    setRowStatus(initialStatus);
+
     const results: ZipResult[] = [];
-    
-    for (const fileGroup of selectedRows) {
-      const result = await createZip(fileGroup);
-      if (result) {
-        results.push(result);
-      }
-    }
-    
-    if (results.length > 0) {
-      setPackagingResults(results);
-      setShowResults(true);
-      message.success(`成功創建 ${results.length} 個 ZIP 文件`);
-    }
-  };
-  
-  // 自動打包所有文件組
-  const handleAutoPackage = async (directoryPath: string) => {
+    let done = 0;
+
     try {
-      console.log('開始自動打包，使用已掃描的文件組');
-      
-      // 使用已經掃描到的文件組，而不是重新掃描
-      if (!fileGroups || fileGroups.length === 0) {
-        console.log('沒有文件組，重新掃描');
-        const groups = await window.electronAPI[ZipIPC.SCAN_DIRECTORY](directoryPath);
-        
-        if (!groups || groups.length === 0) {
-          message.info('未找到可打包的文件組');
-          return;
+      for (const group of groups) {
+        const key = groupRowKey(group);
+        setRowStatus(prev => ({ ...prev, [key]: 'running' }));
+        setProgress({ done, total, current: group.name });
+
+        try {
+          const result = await window.electronAPI[ZipIPC.CREATE_ZIP](group);
+          if (result?.success) {
+            results.push(result);
+            setRowStatus(prev => ({ ...prev, [key]: 'ok' }));
+          } else {
+            results.push(
+              result || {
+                success: false,
+                message: '創建 ZIP 失敗',
+                groupName: group.name,
+                sourceDirectory: group.basePath,
+              }
+            );
+            setRowStatus(prev => ({ ...prev, [key]: 'fail' }));
+          }
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          results.push({
+            success: false,
+            message: msg,
+            groupName: group.name,
+            sourceDirectory: group.basePath,
+          });
+          setRowStatus(prev => ({ ...prev, [key]: 'fail' }));
         }
-        
-        setFileGroups(groups);
+
+        done += 1;
+        setProgress({ done, total, current: group.name });
+        setPackagingResults([...results]);
       }
-      
-      const results: ZipResult[] = [];
-      
-      for (const fileGroup of fileGroups) {
-        console.log('正在打包文件組:', fileGroup.name);
-        const result = await createZip(fileGroup);
-        if (result) {
-          results.push(result);
-        }
-      }
-      
-      if (results.length > 0) {
-        setPackagingResults(results);
-        setShowResults(true);
-        message.success(`成功創建 ${results.length} 個 ZIP 文件`);
-      } else {
-        message.warning('沒有成功創建任何 ZIP 文件');
-      }
-      
-      return results;
-    } catch (error) {
-      console.error('自動打包時出錯:', error);
-      message.error('自動打包時出錯');
-      throw error;
+
+      const ok = results.filter(r => r.success).length;
+      const fail = results.length - ok;
+      message.success(`打包完成：成功 ${ok}，失敗 ${fail}`);
+    } finally {
+      setIsPackaging(false);
+      setProgress(prev => (prev ? { ...prev, current: null } : null));
     }
   };
 
-  // 打開文件所在目錄
-  const openFileLocation = async (path: string) => {
-    try {
-      await window.electronAPI[ZipIPC.OPEN_ITEM](path, false);
-    } catch (error) {
-      console.error('打開文件位置時出錯:', error);
-      message.error('打開文件位置時出錯');
+  const handlePackAll = () => {
+    if (!canPackAll) {
+      if (!selectedDirectory) message.error('請先選擇目錄');
+      else if (fileGroups.length === 0) message.warning('沒有可打包的文件組');
+      return;
+    }
+
+    // 使用掃描快照，避免過程中狀態被改寫
+    const snapshot = [...fileGroups];
+
+    Modal.confirm({
+      title: '確認全部打包',
+      content: (
+        <div>
+          <p>
+            將在下列目錄為 <strong>全部 {snapshot.length} 個</strong>文件組各生成一個 ZIP。
+            同名 ZIP 可能被覆蓋。
+          </p>
+          <p style={{ wordBreak: 'break-all' }}>
+            <strong>工作目錄：</strong>
+            {selectedDirectory}
+          </p>
+        </div>
+      ),
+      okText: '開始打包',
+      cancelText: '取消',
+      onOk: () => packAllGroups(snapshot),
+    });
+  };
+
+  const statusTag = (status: GroupRowStatus | undefined) => {
+    switch (status) {
+      case 'pending':
+        return <Tag>排隊</Tag>;
+      case 'running':
+        return <Tag color="processing">打包中</Tag>;
+      case 'ok':
+        return <Tag color="success">成功</Tag>;
+      case 'fail':
+        return <Tag color="error">失敗</Tag>;
+      default:
+        return <Tag>待打包</Tag>;
     }
   };
 
-  // 表格列定義
-  const columns = [
+  const columns: ColumnsType<FileGroup> = [
     {
-      title: '文件組名稱',
+      title: '組名',
       dataIndex: 'name',
       key: 'name',
-      render: (text: string) => <span>{text}</span>,
+      ellipsis: true,
+      render: (name: string) => <Text strong>{name}</Text>,
     },
     {
-      title: '文件數量',
-      dataIndex: 'count',
-      key: 'count',
-      width: 100,
-      render: (count: number) => <span>{count} 個文件</span>,
-    },
-    {
-      title: '文件類型',
-      key: 'fileTypes',
+      title: '擴展名',
+      key: 'exts',
       width: 200,
-      render: (record: FileGroup) => {
-        const extensions = [...new Set(record.files.map(file => file.extension))];
-        return (
-          <FileTypes>
-            {extensions.map(ext => (
-              <FileType key={ext}>{ext}</FileType>
-            ))}
-          </FileTypes>
-        );
-      },
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 120,
-      render: (record: FileGroup) => (
-        <Space size="small">
-          <Tooltip title="查看詳情">
-            <Button 
-              type="text" 
-              icon={<InfoCircleOutlined />} 
-              onClick={() => {
-                Modal.info({
-                  title: `文件組 "${record.name}" 詳情`,
-                  content: (
-                    <div>
-                      <p>文件數量: {record.count}</p>
-                      <p>源目錄: {record.basePath}</p>
-                      <FileList>
-                        <p>文件列表:</p>
-                        <ul>
-                          {record.files.map((file, index) => (
-                            <li key={index}>
-                              {file.name} ({(file.size / 1024).toFixed(2)} KB)
-                            </li>
-                          ))}
-                        </ul>
-                      </FileList>
-                    </div>
-                  ),
-                  width: 500,
-                });
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="打包">
-            <Button 
-              type="primary" 
-              icon={<FileZipOutlined />} 
-              onClick={() => handlePackageSingle(record)}
-              disabled={isPackaging}
-            />
-          </Tooltip>
+      render: (_, record) => (
+        <Space size={[4, 4]} wrap>
+          {groupExtensions(record).map(ext => (
+            <Tag key={ext} style={{ marginInlineEnd: 0 }}>
+              {ext}
+            </Tag>
+          ))}
         </Space>
       ),
     },
+    {
+      title: '文件數',
+      key: 'count',
+      width: 88,
+      render: (_, record) => groupFileCount(record),
+    },
+    {
+      title: '大小',
+      key: 'size',
+      width: 100,
+      render: (_, record) => formatBytes(groupTotalSize(record)),
+    },
+    {
+      title: '狀態',
+      key: 'status',
+      width: 96,
+      render: (_, record) => statusTag(rowStatus[groupRowKey(record)]),
+    },
   ];
 
+  const progressPercent =
+    progress && progress.total > 0
+      ? Math.min(100, Math.round((progress.done / progress.total) * 100))
+      : 0;
+
+  const showWorkspace = !!selectedDirectory;
+  const showNoMatch = showWorkspace && !loading && fileGroups.length === 0;
+
   return (
-    <Container>
-      <StyledCard>
-        <Header>
-          <Title level={4}>文件打包</Title>
-          <Actions>
-            <Button 
-              type="primary" 
-              icon={<FolderOpenOutlined />} 
-              onClick={handleSelectDirectory}
-              disabled={isPackaging || loading}
-              loading={loading}
-            >
-              選擇目錄
-            </Button>
-            {selectedDirectory && (
-              <>
-                <Button 
-                  icon={<ReloadOutlined />} 
-                  onClick={handleRescan}
-                  disabled={isPackaging || loading}
-                  loading={loading}
-                >
-                  重新掃描
-                </Button>
-                <Button 
-                  type="primary" 
-                  icon={<FileZipOutlined />} 
-                  onClick={handleConfirmPackage}
-                  disabled={isPackaging || loading}
-                  loading={isPackaging}
-                >
-                  確認打包
-                </Button>
-                {fileGroups.length > 0 && (
-                  <Button 
-                    type="primary" 
-                    icon={<FileZipOutlined />} 
-                    onClick={handleBatchPackage}
-                    disabled={isPackaging || loading || selectedRows.length === 0}
-                    loading={isPackaging}
-                  >
-                    批量打包
-                  </Button>
-                )}
-              </>
-            )}
-          </Actions>
-        </Header>
-        
-        {selectedDirectory && (
-          <DirectoryInfo>
-            <Text strong>當前目錄: </Text>
-            <Text>{selectedDirectory}</Text>
-          </DirectoryInfo>
-        )}
-        
-        {selectedDirectory && (
-          <SearchBar>
-            <Search
-              placeholder="搜索文件名或擴展名"
-              allowClear
-              enterButton={<SearchOutlined />}
-              onSearch={handleSearch}
-              onChange={e => setSearchText(e.target.value)}
-              style={{ width: 300 }}
-              disabled={isPackaging}
-            />
-            <Text type="secondary">
-              找到 {filteredFileGroups.length} 個文件組，共 {fileGroups.length} 個
+    <PageRoot>
+      <ScrollArea>
+        <PageHeader>
+          <div>
+            <Title level={4} style={{ margin: 0 }}>
+              文件打包
+            </Title>
+            <Text type="secondary" style={{ fontSize: 13 }}>
+              掃描同名多格式文件並打包為 ZIP，輸出到源目錄。
             </Text>
-          </SearchBar>
+            <Rule style={{ background: token.colorFillAlter, borderColor: token.colorBorderSecondary }}>
+              規則：同名 · {SCAN_HINT} → {'{組名}'}.zip
+            </Rule>
+          </div>
+        </PageHeader>
+
+        {!showWorkspace && (
+          <CardPanel style={{ borderColor: token.colorBorderSecondary, background: token.colorBgContainer }}>
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <Space direction="vertical" size={8}>
+                  <Text strong style={{ fontSize: 16 }}>
+                    開始文件打包
+                  </Text>
+                  <Text type="secondary">
+                    選擇包含同名多格式素材的文件夾（例如 design.ai + design.jpg）。系統會按基本名分組並生成
+                    ZIP。
+                  </Text>
+                </Space>
+              }
+            >
+              <Button
+                type="primary"
+                icon={<FolderOpenOutlined />}
+                onClick={handleSelectDirectory}
+                loading={loading}
+              >
+                選擇目錄
+              </Button>
+            </Empty>
+          </CardPanel>
         )}
-        
-        {isPackaging && (
-          <ProgressContainer>
-            <Progress percent={packagingProgress} status="active" />
-            <Text type="secondary">正在創建 ZIP 文件，請稍候...</Text>
-          </ProgressContainer>
-        )}
-        
-        <StyledTable
-          rowSelection={{
-            type: 'checkbox',
-            ...rowSelection,
-          }}
-          columns={columns}
-          dataSource={filteredFileGroups}
-          rowKey="name"
-          loading={loading}
-          pagination={{ pageSize: 10 }}
-          locale={{ emptyText: selectedDirectory ? '未找到文件組' : '請選擇一個目錄' }}
-        />
-      </StyledCard>
-      
-      <Modal
-        title="打包結果"
-        open={showResults}
-        onCancel={() => setShowResults(false)}
-        footer={[
-          <Button key="close" onClick={() => setShowResults(false)}>
-            關閉
-          </Button>
-        ]}
-        width={600}
-      >
-        <ResultsList>
-          {packagingResults.map((result, index) => (
-            <ResultCard key={index}>
-              <ResultHeader>
-                <div>
-                  <Text strong>{result.groupName}.zip</Text>
-                  <Text type="secondary" style={{ marginLeft: '8px' }}>包含 {result.fileCount} 個文件</Text>
-                </div>
-                <Button 
-                  type="link" 
-                  onClick={() => openFileLocation(result.outputPath)}
+
+        {showWorkspace && (
+          <>
+            <CardPanel
+              style={{ borderColor: token.colorBorderSecondary, background: token.colorBgContainer }}
+            >
+              <SectionTitle>工作目錄</SectionTitle>
+              <DirRow>
+                <Tooltip title={selectedDirectory}>
+                  <PathText ellipsis>{selectedDirectory}</PathText>
+                </Tooltip>
+                <Space wrap>
+                  <Button
+                    icon={<FolderOpenOutlined />}
+                    onClick={handleSelectDirectory}
+                    disabled={isPackaging}
+                    loading={loading}
+                  >
+                    選擇目錄
+                  </Button>
+                  <Tooltip title={selectedDirectory ? '在系統中打開此目錄（ZIP 輸出位置）' : '請先選擇目錄'}>
+                    <Button
+                      type="primary"
+                      icon={<FolderOpenOutlined />}
+                      onClick={handleOpenDirectory}
+                      disabled={!selectedDirectory}
+                    >
+                      打開打包目錄
+                    </Button>
+                  </Tooltip>
+                </Space>
+              </DirRow>
+              <Space size={[8, 8]} wrap style={{ marginTop: 10 }}>
+                <Tag color="blue">{fileGroups.length} 個文件組</Tag>
+                <Tag>{SCAN_HINT}</Tag>
+              </Space>
+            </CardPanel>
+
+            {showNoMatch && (
+              <CardPanel
+                style={{ borderColor: token.colorBorderSecondary, background: token.colorBgContainer }}
+              >
+                <Empty
+                  description={
+                    <Space direction="vertical" size={8}>
+                      <Text strong>未找到可打包的文件組</Text>
+                      <Text type="secondary">
+                        目錄內需存在同名且擴展名為 {SCAN_HINT} 的文件。可再點「選擇目錄」更換或重選同一路徑。
+                      </Text>
+                    </Space>
+                  }
                 >
-                  打開位置
-                </Button>
-              </ResultHeader>
-              <ResultInfo>
-                <p>輸出路徑: {result.outputPath}</p>
-                <p>源目錄: {result.sourceDirectory}</p>
-              </ResultInfo>
-            </ResultCard>
-          ))}
-        </ResultsList>
-      </Modal>
-    </Container>
+                  <Button type="primary" icon={<FolderOpenOutlined />} onClick={handleSelectDirectory}>
+                    選擇目錄
+                  </Button>
+                </Empty>
+              </CardPanel>
+            )}
+
+            {!showNoMatch && (
+              <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
+                <Col xs={24} lg={15}>
+                  <CardPanel
+                    style={{
+                      borderColor: token.colorBorderSecondary,
+                      background: token.colorBgContainer,
+                    }}
+                  >
+                    <SectionTitle>
+                      文件組{' '}
+                      <Text type="secondary" style={{ fontWeight: 400, fontSize: 12 }}>
+                        · {filteredGroups.length}
+                        {searchText.trim() ? ` / ${fileGroups.length}` : ''} 組
+                      </Text>
+                    </SectionTitle>
+                    <Input
+                      allowClear
+                      prefix={<SearchOutlined />}
+                      placeholder="搜索組名或擴展名…"
+                      value={searchText}
+                      onChange={e => setSearchText(e.target.value)}
+                      disabled={isPackaging}
+                      style={{ marginBottom: 12, maxWidth: 360 }}
+                    />
+                    <Table
+                      size="small"
+                      rowKey={groupRowKey}
+                      columns={columns}
+                      dataSource={filteredGroups}
+                      loading={loading}
+                      pagination={
+                        filteredGroups.length > 20
+                          ? { pageSize: 20, showSizeChanger: false }
+                          : false
+                      }
+                      locale={{ emptyText: '無符合搜索的文件組' }}
+                      scroll={{ x: 640 }}
+                    />
+                    {searchText.trim() && (
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        搜索只過濾展示；全部打包仍針對掃描到的全部 {fileGroups.length} 組
+                      </Text>
+                    )}
+                  </CardPanel>
+                </Col>
+                <Col xs={24} lg={9}>
+                  <CardPanel
+                    style={{
+                      borderColor: token.colorBorderSecondary,
+                      background: token.colorBgContainer,
+                      height: '100%',
+                    }}
+                  >
+                    <SectionTitle>就緒檢查</SectionTitle>
+                    <ReadyList>
+                      <ReadyItem>
+                        <CheckCircleFilled style={{ color: token.colorSuccess }} />
+                        <Text>已選擇目錄</Text>
+                      </ReadyItem>
+                      <ReadyItem>
+                        {fileGroups.length > 0 ? (
+                          <CheckCircleFilled style={{ color: token.colorSuccess }} />
+                        ) : (
+                          <ExclamationCircleFilled style={{ color: token.colorWarning }} />
+                        )}
+                        <Text type={fileGroups.length > 0 ? undefined : 'secondary'}>
+                          {fileGroups.length > 0
+                            ? `可打包 ${fileGroups.length} 個文件組`
+                            : '尚無可打包文件組'}
+                        </Text>
+                      </ReadyItem>
+                      <ReadyItem>
+                        {!isPackaging ? (
+                          <CheckCircleFilled style={{ color: token.colorSuccess }} />
+                        ) : (
+                          <ExclamationCircleFilled style={{ color: token.colorPrimary }} />
+                        )}
+                        <Text type={isPackaging ? 'secondary' : undefined}>
+                          {isPackaging ? '打包進行中…' : '系統空閒，可開始打包'}
+                        </Text>
+                      </ReadyItem>
+                    </ReadyList>
+
+                    {(isPackaging || (progress && progress.total > 0)) && progress && (
+                      <div style={{ marginTop: 14 }}>
+                        <ProgressLabel>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            {isPackaging
+                              ? `正在打包 ${progress.done}/${progress.total}${
+                                  progress.current ? ` · ${progress.current}` : ''
+                                }`
+                              : `已完成 ${progress.done}/${progress.total}`}
+                          </Text>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            {progressPercent}%
+                          </Text>
+                        </ProgressLabel>
+                        <Progress
+                          percent={progressPercent}
+                          status={isPackaging ? 'active' : 'normal'}
+                          showInfo={false}
+                        />
+                      </div>
+                    )}
+                  </CardPanel>
+                </Col>
+              </Row>
+            )}
+
+            {packagingResults.length > 0 && (
+              <CardPanel
+                style={{ borderColor: token.colorBorderSecondary, background: token.colorBgContainer }}
+              >
+                <SectionTitle>
+                  打包結果{' '}
+                  <Text type="secondary" style={{ fontWeight: 400, fontSize: 12 }}>
+                    · ZIP 已寫入上方「工作目錄」，請用「打開打包目錄」查看
+                  </Text>
+                </SectionTitle>
+                <Row gutter={12} style={{ marginBottom: 12 }}>
+                  <Col span={6}>
+                    <StatBox style={{ borderColor: token.colorBorderSecondary, background: token.colorFillAlter }}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        合計
+                      </Text>
+                      <StatNum>{packagingResults.length}</StatNum>
+                    </StatBox>
+                  </Col>
+                  <Col span={6}>
+                    <StatBox style={{ borderColor: token.colorBorderSecondary, background: token.colorFillAlter }}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        成功
+                      </Text>
+                      <StatNum style={{ color: token.colorSuccess }}>{successCount}</StatNum>
+                    </StatBox>
+                  </Col>
+                  <Col span={6}>
+                    <StatBox style={{ borderColor: token.colorBorderSecondary, background: token.colorFillAlter }}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        失敗
+                      </Text>
+                      <StatNum style={{ color: token.colorError }}>{failCount}</StatNum>
+                    </StatBox>
+                  </Col>
+                  <Col span={6}>
+                    <StatBox style={{ borderColor: token.colorBorderSecondary, background: token.colorFillAlter }}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        成功率
+                      </Text>
+                      <StatNum>
+                        {packagingResults.length
+                          ? Math.round((successCount / packagingResults.length) * 100)
+                          : 0}
+                        %
+                      </StatNum>
+                    </StatBox>
+                  </Col>
+                </Row>
+
+                {failCount > 0 && (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                    message="部分組打包失敗，可檢查文件是否被佔用後再次「全部打包」。"
+                  />
+                )}
+
+                <ResultList>
+                  {packagingResults.map((r, idx) => (
+                    <ResultRow key={`${r.groupName || idx}-${idx}`}>
+                      <div>
+                        <Text strong>{r.groupName ? `${r.groupName}.zip` : 'ZIP'}</Text>
+                        <Tag
+                          color={r.success ? 'success' : 'error'}
+                          style={{ marginLeft: 8 }}
+                        >
+                          {r.success ? '成功' : '失敗'}
+                        </Tag>
+                        <div>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            {r.success
+                              ? `包含 ${r.fileCount ?? '—'} 個文件`
+                              : r.message || '打包失敗'}
+                          </Text>
+                        </div>
+                      </div>
+                    </ResultRow>
+                  ))}
+                </ResultList>
+              </CardPanel>
+            )}
+          </>
+        )}
+      </ScrollArea>
+
+      <ActionBar
+        style={{
+          borderColor: token.colorBorderSecondary,
+          background: token.colorBgContainer,
+        }}
+      >
+        <Text type="secondary" style={{ fontSize: 13 }}>
+          {fileGroups.length > 0
+            ? `將一次打包全部 ${fileGroups.length} 個文件組（無單組 / 無勾選）`
+            : selectedDirectory
+              ? '暫無可打包文件組'
+              : '請先選擇工作目錄'}
+        </Text>
+        <Button
+          type="primary"
+          size="large"
+          icon={<FileZipOutlined />}
+          loading={isPackaging}
+          disabled={!canPackAll && !isPackaging}
+          onClick={handlePackAll}
+        >
+          {isPackaging
+            ? '打包中…'
+            : fileGroups.length > 0
+              ? `全部打包 (${fileGroups.length})`
+              : '全部打包'}
+        </Button>
+      </ActionBar>
+    </PageRoot>
   );
 };
 
 export default FilePackagingPage;
 
-// 使用 styled-components 定義樣式
-const Container = styled.div`
-  padding: 20px;
-  width: 100%;
-`;
-
-const StyledCard = styled(Card)`
-  width: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-`;
-
-const Header = styled.div`
+const PageRoot = styled.div`
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  min-height: 100%;
+  position: relative;
+  padding-bottom: 72px;
+`;
+
+const ScrollArea = styled.div`
+  flex: 1;
+  min-height: 0;
+`;
+
+const PageHeader = styled.div`
+  margin-bottom: 16px;
+`;
+
+const Rule = styled.div`
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: inherit;
+  opacity: 0.85;
+  border: 1px solid transparent;
+  padding: 4px 10px;
+  border-radius: 999px;
+`;
+
+const CardPanel = styled.div`
+  border: 1px solid #f0f0f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  margin-bottom: 12px;
+`;
+
+const SectionTitle = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+`;
+
+const DirRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   align-items: center;
-  margin-bottom: 20px;
+  justify-content: space-between;
 `;
 
-const Actions = styled.div`
+const PathText = styled(Text)`
+  flex: 1;
+  min-width: 180px;
+  word-break: break-all;
+`;
+
+const ReadyList = styled.div`
   display: flex;
+  flex-direction: column;
   gap: 10px;
 `;
 
-const DirectoryInfo = styled.div`
-  margin-bottom: 16px;
-  padding: 8px 12px;
-  background-color: ${props => props.theme.colorBgContainer};
-  border-radius: 4px;
-  border: 1px solid ${props => props.theme.colorBorderSecondary};
+const ReadyItem = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
 `;
 
-const SearchBar = styled.div`
+const ProgressLabel = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  gap: 8px;
+`;
+
+const StatBox = styled.div`
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+`;
+
+const StatNum = styled.div`
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 2px;
+`;
+
+const ResultList = styled.div`
+  max-height: 280px;
+  overflow: auto;
+`;
+
+const ResultRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-`;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
 
-const ProgressContainer = styled.div`
-  margin: 16px 0;
-  text-align: center;
-`;
-
-const StyledTable = styled(Table)`
-  .ant-table-thead > tr > th {
-    background-color: ${props => props.theme.colorBgContainer};
+  &:last-child {
+    border-bottom: none;
   }
 `;
 
-const ResultsList = styled.div`
-  max-height: 400px;
-  overflow-y: auto;
-`;
-
-const ResultCard = styled(Card)`
-  margin-bottom: 12px;
-  border: 1px solid ${props => props.theme.colorBorderSecondary};
-`;
-
-const ResultHeader = styled.div`
+const ActionBar = styled.div`
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  margin: 0 -4px;
+  padding: 12px 16px;
+  border-top: 1px solid #f0f0f0;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-`;
-
-const ResultInfo = styled.div`
-  p {
-    margin: 4px 0;
-  }
-`;
-
-const FileTypes = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-`;
-
-const FileType = styled.span`
-  padding: 2px 6px;
-  background-color: ${props => props.theme.colorPrimaryBg};
-  color: ${props => props.theme.colorPrimaryText};
-  border-radius: 4px;
-  font-size: 12px;
-`;
-
-const FileList = styled.div`
-  max-height: 200px;
-  overflow-y: auto;
-  margin-top: 8px;
-  
-  ul {
-    padding-left: 20px;
-    margin: 8px 0;
-  }
-  
-  li {
-    margin-bottom: 4px;
-  }
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.04);
 `;

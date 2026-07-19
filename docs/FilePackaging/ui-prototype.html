@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>文件打包 · UI 原型</title>
+  <style>
+    :root {
+      --primary: #4B9FE1;
+      --primary-hover: #3A8FD0;
+      --primary-soft: #E8F3FF;
+      --layout-bg: #F0F4F8;
+      --card: #FFFFFF;
+      --text: #1F2937;
+      --text-secondary: #6B7280;
+      --border: #E5E7EB;
+      --success: #16A34A;
+      --success-bg: #F0FDF4;
+      --warning: #D97706;
+      --warning-bg: #FFFBEB;
+      --error: #DC2626;
+      --muted: #F9FAFB;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06);
+      --sidebar-w: 200px;
+      --titlebar-h: 32px;
+      --actionbar-h: 64px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: #1a1a1a;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+    .doc-header { width: min(1180px, 100%); color: #e5e7eb; margin-bottom: 16px; }
+    .doc-header h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    .doc-header p { font-size: 13px; color: #9ca3af; line-height: 1.5; }
+    .doc-header code { background: #374151; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+
+    .scene-switch {
+      width: min(1180px, 100%);
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .scene-switch button {
+      border: 1px solid #4b5563; background: #111827; color: #e5e7eb;
+      padding: 8px 14px; border-radius: 999px; font-size: 13px; cursor: pointer;
+      transition: all .15s ease;
+    }
+    .scene-switch button:hover { border-color: var(--primary); color: #fff; }
+    .scene-switch button.active {
+      background: var(--primary); border-color: var(--primary); color: #fff;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      height: 760px;
+      background: var(--layout-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,.45);
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      grid-template-rows: var(--titlebar-h) 1fr;
+      position: relative;
+    }
+    .titlebar {
+      grid-column: 1 / -1;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 12px; font-size: 13px;
+    }
+    .titlebar .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+    .titlebar .dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+    }
+    .sidebar {
+      background: #fff;
+      border-right: 1px solid var(--border);
+      padding: 12px 8px;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .nav-item {
+      padding: 10px 12px; border-radius: 8px; font-size: 13px; color: var(--text-secondary);
+    }
+    .nav-item.active {
+      background: var(--primary-soft); color: var(--primary); font-weight: 600;
+    }
+    .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+    .scroll {
+      flex: 1; overflow: auto;
+      padding: 20px 20px calc(var(--actionbar-h) + 16px);
+    }
+
+    .page-header { margin-bottom: 16px; }
+    .page-header h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    .page-header .sub { font-size: 13px; color: var(--text-secondary); line-height: 1.45; max-width: 560px; }
+    .rule {
+      display: inline-block; margin-top: 8px;
+      font-size: 12px; color: var(--text-secondary);
+      background: var(--muted); border: 1px solid var(--border);
+      padding: 4px 10px; border-radius: 999px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 13px; font-weight: 600; margin-bottom: 10px;
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .muted { font-weight: 400; color: var(--text-secondary); font-size: 12px; }
+
+    .dir-row {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      justify-content: space-between;
+    }
+    .path {
+      font-size: 13px; word-break: break-all; flex: 1; min-width: 200px;
+    }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .tag {
+      font-size: 11px; padding: 2px 8px; border-radius: 4px;
+      background: var(--primary-soft); color: var(--primary); font-weight: 600;
+    }
+    .tag.neutral { background: #f3f4f6; color: #6b7280; }
+    .tag.ok { background: #dcfce7; color: #15803d; }
+    .tag.fail { background: #fee2e2; color: #b91c1c; }
+    .tag.run { background: #dbeafe; color: #1d4ed8; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.45fr 0.9fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      margin-bottom: 10px;
+    }
+    .toolbar input[type="search"] {
+      flex: 1; min-width: 160px;
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 6px 10px; font-size: 12px; font-family: inherit;
+    }
+
+    table.groups {
+      width: 100%; border-collapse: collapse; font-size: 12px;
+    }
+    table.groups th, table.groups td {
+      text-align: left; padding: 8px 10px;
+      border-bottom: 1px solid var(--border); vertical-align: middle;
+    }
+    table.groups th {
+      font-size: 11px; color: var(--text-secondary); background: var(--muted); font-weight: 600;
+    }
+    table.groups tr.selected { background: var(--primary-soft); }
+    .exts { display: flex; flex-wrap: wrap; gap: 4px; }
+
+    .checklist { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .checklist li { display: flex; gap: 8px; font-size: 13px; line-height: 1.4; }
+    .check {
+      width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+      display: grid; place-items: center; font-size: 11px; font-weight: 700;
+    }
+    .check.ok { background: var(--success-bg); color: var(--success); border: 1px solid #bbf7d0; }
+    .check.no { background: #f3f4f6; color: #9ca3af; border: 1px solid var(--border); }
+
+    .progress-label {
+      display: flex; justify-content: space-between;
+      font-size: 12px; color: var(--text-secondary); margin: 12px 0 6px;
+    }
+    .progress-bar {
+      height: 8px; border-radius: 999px; background: #e5e7eb; overflow: hidden;
+    }
+    .progress-bar > i {
+      display: block; height: 100%; background: var(--primary); border-radius: 999px;
+    }
+
+    .empty {
+      text-align: center; padding: 48px 16px; color: var(--text-secondary);
+    }
+    .empty h3 { color: var(--text); font-size: 16px; margin-bottom: 8px; }
+    .empty p { font-size: 13px; line-height: 1.5; margin-bottom: 16px; max-width: 360px; margin-left: auto; margin-right: auto; }
+
+    .stats {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;
+    }
+    .stat {
+      background: var(--muted); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px; text-align: center;
+    }
+    .stat .n { font-size: 20px; font-weight: 700; }
+    .stat .l { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .stat.ok .n { color: var(--success); }
+    .stat.fail .n { color: var(--error); }
+
+    .result-row {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+    }
+    .result-row:last-child { border-bottom: none; }
+
+    .actionbar {
+      position: absolute;
+      left: var(--sidebar-w); right: 0; bottom: 0;
+      height: var(--actionbar-h);
+      background: rgba(255,255,255,.96);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; gap: 12px;
+      backdrop-filter: blur(8px);
+    }
+    .actionbar .left, .actionbar .right { display: flex; gap: 8px; align-items: center; }
+
+    .btn {
+      border: 1px solid var(--border); background: #fff; color: var(--text);
+      font-size: 13px; padding: 8px 14px; border-radius: 8px;
+      cursor: pointer; font-family: inherit; transition: all .15s ease;
+    }
+    .btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn.primary {
+      background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600;
+    }
+    .btn.primary:hover:not(:disabled) { background: var(--primary-hover); color: #fff; }
+    .btn.sm { padding: 4px 10px; font-size: 12px; }
+    .btn.link { border: none; background: transparent; color: var(--primary); padding: 0 4px; }
+
+    .hidden { display: none !important; }
+    .legend {
+      width: min(1180px, 100%); margin-top: 16px;
+      color: #9ca3af; font-size: 12px; line-height: 1.6;
+    }
+    .legend strong { color: #d1d5db; }
+  </style>
+</head>
+<body>
+  <header class="doc-header">
+    <h1>文件打包 · UI 原型</h1>
+    <p>
+      設計依據 <code>ui-ux-pro-max</code> · 文檔 <code>docs/FilePackaging/</code> ·
+      業務規則與 ZipService 對齊（.ai/.eps/.jpg/.png · 源目錄輸出）· 不硬套 Skill 新色板
+    </p>
+  </header>
+
+  <div class="scene-switch" id="scenes">
+    <button type="button" data-scene="empty" class="active">1. 空狀態</button>
+    <button type="button" data-scene="ready">2. 就緒（全部打包）</button>
+    <button type="button" data-scene="running">3. 打包中</button>
+    <button type="button" data-scene="done">4. 結果</button>
+    <button type="button" data-scene="nomatch">5. 無匹配</button>
+  </div>
+
+  <div class="app">
+    <div class="titlebar">
+      <div class="brand"><span class="dot"></span> metadata-app</div>
+      <div style="color:var(--text-secondary);font-size:12px">─ □ ×</div>
+    </div>
+    <aside class="sidebar">
+      <div class="nav-item">首頁</div>
+      <div class="nav-item">元數據寫入</div>
+      <div class="nav-item">LLM 圖片分析</div>
+      <div class="nav-item active">文件打包</div>
+      <div class="nav-item">設置</div>
+    </aside>
+
+    <section class="main">
+      <div class="scroll">
+        <div class="page-header">
+          <h2>文件打包</h2>
+          <p class="sub">掃描同名多格式文件並打包為 ZIP，輸出到源目錄。</p>
+          <span class="rule">規則：同名 · .ai / .eps / .jpg / .png → {組名}.zip</span>
+        </div>
+
+        <!-- 空態整頁 -->
+        <div id="emptyBlock" class="card hidden">
+          <div class="empty">
+            <h3>開始文件打包</h3>
+            <p>選擇包含同名多格式素材的文件夾（例如 design.ai + design.jpg）。系統會按基本名分組並生成 ZIP。</p>
+            <button type="button" class="btn primary">選擇目錄</button>
+          </div>
+        </div>
+
+        <div id="workspace" class="hidden">
+          <div class="card" id="dirCard">
+            <div class="card-title">工作目錄</div>
+            <div class="dir-row">
+              <div class="path" id="dirPath">—</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button type="button" class="btn sm" id="btnPick">選擇目錄</button>
+                <button type="button" class="btn primary sm" id="btnOpenDir">打開打包目錄</button>
+              </div>
+            </div>
+            <div class="tags" id="dirTags"></div>
+          </div>
+
+          <div id="nomatchBlock" class="card hidden">
+            <div class="empty">
+              <h3>未找到可打包的文件組</h3>
+              <p>目錄內需存在<strong>同名</strong>且擴展名為 .ai / .eps / .jpg / .png 的文件。可再點「選擇目錄」更換或重選同一路徑。</p>
+              <button type="button" class="btn primary sm">選擇目錄</button>
+            </div>
+          </div>
+
+          <div class="grid-2" id="mainGrid">
+            <div class="card">
+              <div class="card-title">
+                <span>文件組 <span class="muted" id="groupCount"></span></span>
+              </div>
+              <div class="toolbar">
+                <input type="search" placeholder="搜索組名或擴展名…" disabled title="原型示意" />
+              </div>
+              <div style="overflow:auto;max-height:280px;border:1px solid var(--border);border-radius:8px">
+                <table class="groups">
+                  <thead>
+                    <tr>
+                      <th>組名</th>
+                      <th>擴展名</th>
+                      <th>文件數</th>
+                      <th>狀態</th>
+                    </tr>
+                  </thead>
+                  <tbody id="groupBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">就緒檢查</div>
+              <ul class="checklist" id="checklist"></ul>
+              <div id="progressBlock" class="hidden">
+                <div class="progress-label">
+                  <span id="progressText">—</span>
+                  <span id="progressPct">0%</span>
+                </div>
+                <div class="progress-bar"><i id="progressFill" style="width:0%"></i></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card hidden" id="resultsCard">
+            <div class="card-title">
+              <span>打包結果</span>
+              <span class="muted">ZIP 已寫入上方「工作目錄」· 用該區塊「打開打包目錄」查看</span>
+            </div>
+            <div class="stats" id="stats"></div>
+            <div id="resultList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actionbar" id="actionbar">
+        <div class="left">
+          <span class="muted" id="barHint" style="font-size:13px">統一全部打包 · 無單組 / 無勾選打包</span>
+        </div>
+        <div class="right">
+          <button type="button" class="btn primary" id="btnPackAll">全部打包</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <p class="legend">
+    <strong>場景：</strong>
+    1 空狀態；2 就緒（一覽表 + <strong>唯一</strong>「全部打包」）；3 打包中真實 n/total；
+    4 結果：僅摘要列表；<strong>「打開打包目錄」在工作目錄區塊</strong>；5 有目錄無匹配。
+    <strong>工作流</strong>：統一選目錄 → 統一全部打包。
+    確認設計後再改 <code>src/pages/FilePackaging/</code>。
+  </p>
+
+  <script>
+    const GROUPS = [
+      { name: 'hero-banner', exts: ['.ai', '.jpg', '.png'], n: 3 },
+      { name: 'logo-set', exts: ['.ai', '.eps', '.png'], n: 3 },
+      { name: 'icon-pack', exts: ['.ai', '.png'], n: 2 },
+      { name: 'poster-a', exts: ['.jpg', '.png'], n: 2 },
+      { name: 'card-front', exts: ['.ai', '.jpg'], n: 2 },
+    ];
+
+    const SCENES = {
+      empty: {
+        hasDir: false,
+        groups: [],
+        packaging: false,
+        progress: null,
+        results: null,
+        nomatch: false,
+      },
+      ready: {
+        hasDir: true,
+        dir: '/Users/demo/Design/Stock-Export',
+        groups: GROUPS,
+        packaging: false,
+        progress: null,
+        results: null,
+        nomatch: false,
+      },
+      running: {
+        hasDir: true,
+        dir: '/Users/demo/Design/Stock-Export',
+        groups: GROUPS,
+        packaging: true,
+        progress: { done: 2, total: 5, current: 'icon-pack' },
+        results: null,
+        nomatch: false,
+        rowStatus: {
+          'hero-banner': 'ok',
+          'logo-set': 'ok',
+          'icon-pack': 'run',
+          'poster-a': 'pending',
+          'card-front': 'pending',
+        },
+      },
+      done: {
+        hasDir: true,
+        dir: '/Users/demo/Design/Stock-Export',
+        groups: GROUPS,
+        packaging: false,
+        progress: null,
+        nomatch: false,
+        results: {
+          success: 4,
+          fail: 1,
+          total: 5,
+          rows: [
+            { name: 'hero-banner.zip', ok: true, n: 3 },
+            { name: 'logo-set.zip', ok: true, n: 3 },
+            { name: 'icon-pack.zip', ok: true, n: 2 },
+            { name: 'poster-a.zip', ok: true, n: 2 },
+            { name: 'card-front.zip', ok: false, n: 0, err: '文件被佔用，無法寫入' },
+          ],
+        },
+      },
+      nomatch: {
+        hasDir: true,
+        dir: '/Users/demo/Empty-Or-Wrong-Types',
+        groups: [],
+        packaging: false,
+        progress: null,
+        results: null,
+        nomatch: true,
+      },
+    };
+
+    function render(key) {
+      const s = SCENES[key];
+      const emptyBlock = document.getElementById('emptyBlock');
+      const workspace = document.getElementById('workspace');
+      const nomatchBlock = document.getElementById('nomatchBlock');
+      const mainGrid = document.getElementById('mainGrid');
+      const resultsCard = document.getElementById('resultsCard');
+      const progressBlock = document.getElementById('progressBlock');
+      const actionbar = document.getElementById('actionbar');
+
+      if (!s.hasDir) {
+        emptyBlock.classList.remove('hidden');
+        workspace.classList.add('hidden');
+        actionbar.style.opacity = '0.5';
+        document.getElementById('btnPackAll').disabled = true;
+        document.getElementById('barHint').textContent = '請先選擇目錄';
+        return;
+      }
+
+      emptyBlock.classList.add('hidden');
+      workspace.classList.remove('hidden');
+      actionbar.style.opacity = '1';
+
+      document.getElementById('dirPath').textContent = s.dir;
+      document.getElementById('dirTags').innerHTML =
+        `<span class="tag">${s.groups.length} 個文件組</span>` +
+        `<span class="tag neutral">.ai .eps .jpg .png</span>`;
+
+      if (s.nomatch) {
+        nomatchBlock.classList.remove('hidden');
+        mainGrid.classList.add('hidden');
+      } else {
+        nomatchBlock.classList.add('hidden');
+        mainGrid.classList.remove('hidden');
+      }
+
+      const body = document.getElementById('groupBody');
+      document.getElementById('groupCount').textContent =
+        s.groups.length ? `· ${s.groups.length} 組` : '';
+
+      body.innerHTML = s.groups.map(g => {
+        const st = (s.rowStatus && s.rowStatus[g.name]) || (s.results ? null : 'idle');
+        let stTag = '<span class="tag neutral">待打包</span>';
+        if (st === 'ok') stTag = '<span class="tag ok">成功</span>';
+        else if (st === 'run') stTag = '<span class="tag run">打包中</span>';
+        else if (st === 'fail') stTag = '<span class="tag fail">失敗</span>';
+        else if (st === 'pending') stTag = '<span class="tag neutral">排隊</span>';
+        else if (s.results) {
+          const row = s.results.rows.find(r => r.name.startsWith(g.name));
+          stTag = row && row.ok ? '<span class="tag ok">成功</span>' : '<span class="tag fail">失敗</span>';
+        }
+        return `<tr>
+          <td><strong>${g.name}</strong></td>
+          <td><div class="exts">${g.exts.map(e => `<span class="tag neutral">${e}</span>`).join('')}</div></td>
+          <td>${g.n}</td>
+          <td>${stTag}</td>
+        </tr>`;
+      }).join('');
+
+      const hasGroups = s.groups.length > 0;
+      const selN = (s.selected || []).length;
+      document.getElementById('checklist').innerHTML = [
+        { ok: true, label: '已選擇目錄' },
+        { ok: hasGroups, label: hasGroups ? `可打包 ${s.groups.length} 個文件組` : '尚無可打包文件組' },
+        { ok: !s.packaging, label: s.packaging ? '打包進行中…' : '系統空閒，可開始打包' },
+      ].map(it => `
+        <li>
+          <span class="check ${it.ok ? 'ok' : 'no'}">${it.ok ? '✓' : '!'}</span>
+          <span>${it.label}</span>
+        </li>
+      `).join('');
+
+      if (s.progress) {
+        progressBlock.classList.remove('hidden');
+        const pct = Math.round((s.progress.done / s.progress.total) * 100);
+        document.getElementById('progressText').textContent =
+          `正在打包 ${s.progress.done}/${s.progress.total} · ${s.progress.current}`;
+        document.getElementById('progressPct').textContent = pct + '%';
+        document.getElementById('progressFill').style.width = pct + '%';
+      } else {
+        progressBlock.classList.add('hidden');
+      }
+
+      if (s.results) {
+        resultsCard.classList.remove('hidden');
+        document.getElementById('stats').innerHTML = `
+          <div class="stat"><div class="n">${s.results.total}</div><div class="l">合計</div></div>
+          <div class="stat ok"><div class="n">${s.results.success}</div><div class="l">成功</div></div>
+          <div class="stat fail"><div class="n">${s.results.fail}</div><div class="l">失敗</div></div>
+          <div class="stat"><div class="n">${Math.round(s.results.success / s.results.total * 100)}%</div><div class="l">成功率</div></div>
+        `;
+        // 列表僅掃讀：無逐行「打開位置」——ZIP 都在同一打包目錄
+        document.getElementById('resultList').innerHTML = s.results.rows.map(r => `
+          <div class="result-row">
+            <div>
+              <strong>${r.name}</strong>
+              <span class="tag ${r.ok ? 'ok' : 'fail'}" style="margin-left:8px">${r.ok ? '成功' : '失敗'}</span>
+              <div class="muted" style="margin-top:4px">${r.ok ? `包含 ${r.n} 個文件` : r.err}</div>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        resultsCard.classList.add('hidden');
+      }
+
+      const btnAll = document.getElementById('btnPackAll');
+      btnAll.disabled = !hasGroups || s.packaging;
+      btnAll.textContent = s.packaging
+        ? '打包中…'
+        : hasGroups
+          ? `全部打包 (${s.groups.length})`
+          : '全部打包';
+      document.getElementById('barHint').textContent = hasGroups
+        ? `將一次打包全部 ${s.groups.length} 個文件組（無單組 / 無勾選）`
+        : '暫無可打包文件組';
+      document.getElementById('btnPick').disabled = s.packaging;
+      // 打開打包目錄：在工作目錄區塊，有路徑即可（打包中也可打開）
+      document.getElementById('btnOpenDir').disabled = !s.hasDir || !s.dir;
+    }
+
+    document.querySelectorAll('#scenes button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#scenes button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        render(btn.dataset.scene);
+      });
+    });
+
+    document.getElementById('btnPackAll').addEventListener('click', () => {
+      if (!document.getElementById('btnPackAll').disabled) {
+        alert('原型：確認後對「全部文件組」逐組打包，進度為真實 i/m。無單組、無勾選打包。');
+      }
+    });
+
+    document.getElementById('btnOpenDir').addEventListener('click', () => {
+      if (document.getElementById('btnOpenDir').disabled) return;
+      alert('原型：工作目錄區塊 · 打開 selectedDirectory（源=輸出，全局唯一入口）。');
+    });
+
+    render('empty');
+  </script>
+</body>
+</html>

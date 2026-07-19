@@ -1,0 +1,29 @@
+%% 文件打包 · 用戶流程
+%% 渲染：GitHub / mermaid.live
+
+flowchart TB
+  A[側欄：文件打包] --> B{已選目錄?}
+  B -->|否| C[空態 + 選擇目錄]
+  C --> D[FileIPC 選目錄]
+  D --> E[ZipIPC 掃描]
+  B -->|是| E
+
+  E --> F{文件組數}
+  F -->|0| G[無匹配空態<br/>再選目錄]
+  F -->|≥1| H[文件組表 + 就緒檢查]
+
+  H --> I{用戶操作}
+  I -->|全部打包| J[確認 Modal<br/>全部 N 組]
+  I -->|再選目錄| D
+
+  J --> O[逐組 CREATE_ZIP<br/>無勾選 / 無單組入口]
+  O --> P[進度 i/m]
+  P --> Q{還有下一組?}
+  Q -->|是| O
+  Q -->|否| R[結果摘要<br/>無打開按鈕]
+  H --> S[工作目錄：打開打包目錄<br/>唯一入口 · 源=輸出]
+  R -.->|用戶去看 ZIP| S
+
+  style J fill:#4B9FE1,color:#fff
+  style R fill:#F0FDF4
+  style G fill:#FFFBEB
